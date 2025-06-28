@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- USB Printer Device Filters -->
+
+    <!-- Generic USB Printer Class -->
+    <usb-device class="7" subclass="1" protocol="1" />
+    <usb-device class="7" subclass="1" protocol="2" />
+    <usb-device class="7" subclass="1" protocol="3" />
+
+    <!-- Epson USB Printers -->
+    <usb-device vendor-id="1208" />
+
+    <!-- Canon USB Printers -->
+    <usb-device vendor-id="1193" />
+
+    <!-- HP USB Printers -->
+    <usb-device vendor-id="1008" />
+
+    <!-- Brother USB Printers -->
+    <usb-device vendor-id="1273" />
+
+    <!-- Star Micronics USB Printers -->
+    <usb-device vendor-id="2071" />
+
+    <!-- Citizen USB Printers -->
+    <usb-device vendor-id="6790" />
+
+    <!-- Zebra USB Printers -->
+    <usb-device vendor-id="2652" />
+
+    <!-- Generic thermal receipt printers -->
+    <usb-device vendor-id="0456" />
+    <usb-device vendor-id="4247" />
+    <usb-device vendor-id="8137" />
+</resources>

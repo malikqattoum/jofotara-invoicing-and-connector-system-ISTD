@@ -1,0 +1,81 @@
+name: jo_invoicing_flutter
+description: JoFotara Invoicing Mobile Application
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0
+
+  # HTTP and API
+  http: ^1.1.0
+  dio: ^5.3.2
+
+  # State Management
+  provider: ^6.1.1
+  shared_preferences: ^2.2.2
+
+  # UI Components
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.0
+  shimmer: ^3.0.0
+
+  # QR Code
+  qr_flutter: ^4.1.0
+  qr_code_scanner: ^1.0.1
+
+  # Printing Support
+  bluetooth_print: ^4.5.1
+  network_info_plus: ^4.1.0
+  printing: ^5.12.0
+  pdf: ^3.10.7
+  esc_pos_utils: ^1.1.0
+  esc_pos_printer: ^4.1.0
+  esc_pos_bluetooth: ^0.4.1
+  blue_thermal_printer: ^1.2.4
+
+  # Permissions
+  permission_handler: ^11.1.0
+
+  # Other utilities
+  path_provider: ^2.1.1
+  file_picker: ^6.1.1
+  share_plus: ^7.2.1
+  url_launcher: ^6.2.1
+  connectivity_plus: ^5.0.2
+  device_info_plus: ^9.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.7
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/fonts/
+
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-Regular.ttf
+        - asset: assets/fonts/Cairo-Bold.ttf
+          weight: 700
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700

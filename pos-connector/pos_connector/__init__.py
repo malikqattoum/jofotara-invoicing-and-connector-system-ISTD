@@ -1,0 +1,1 @@
+# POS Connector package init
