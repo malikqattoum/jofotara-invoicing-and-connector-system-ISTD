@@ -11,21 +11,24 @@ class SystemAlert extends Model
     use HasFactory;
 
     protected $fillable = [
-        'type',
-        'severity',
+        'title',
         'message',
-        'value',
-        'threshold',
+        'severity',
+        'category',
+        'is_active',
         'metadata',
-        'status',
+        'acknowledged_by',
+        'acknowledged_at',
+        'resolved_by',
         'resolved_at',
-        'resolved_by'
+        'resolution_notes',
+        'status'
     ];
 
     protected $casts = [
-        'value' => 'float',
-        'threshold' => 'float',
+        'is_active' => 'boolean',
         'metadata' => 'array',
+        'acknowledged_at' => 'datetime',
         'resolved_at' => 'datetime'
     ];
 
@@ -44,18 +47,33 @@ class SystemAlert extends Model
         return $this->severity === 'critical';
     }
 
-    public function resolve(User $user): void
+    public function acknowledge(int $userId): void
+    {
+        $this->update([
+            'is_active' => false,
+            'acknowledged_by' => $userId,
+            'acknowledged_at' => now()
+        ]);
+    }
+
+    public function resolve(int $userId, string $notes = null): void
     {
         $this->update([
             'status' => 'resolved',
             'resolved_at' => now(),
-            'resolved_by' => $user->id
+            'resolved_by' => $userId,
+            'resolution_notes' => $notes
         ]);
     }
 
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('is_active', true);
+    }
+
+    public function scopeCritical($query)
+    {
+        return $query->where('severity', 'critical');
     }
 
     public function scopeBySeverity($query, string $severity)

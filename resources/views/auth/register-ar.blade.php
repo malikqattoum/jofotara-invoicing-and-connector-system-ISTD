@@ -190,7 +190,7 @@
 
         <div class="text-center">
             <p class="mb-2">هل لديك حساب بالفعل؟</p>
-            <a href="{{ route('login') }}" class="btn btn-outline-primary w-100">
+            <a href="{{ route('login.ar') }}" class="btn btn-outline-primary w-100">
                 <i class="fas fa-sign-in-alt me-2"></i>
                 تسجيل الدخول
             </a>

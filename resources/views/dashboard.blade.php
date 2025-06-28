@@ -45,7 +45,7 @@
 
     <h5>Recent Invoices</h5>
     <div class="mb-3">
-        <a href="{{ route('invoices.create') }}" class="btn btn-primary">Create New Invoice</a>
+        <a href="{{ route('vendor.invoices.create') }}" class="btn btn-primary">Create New Invoice</a>
         <form method="GET" action="{{ route('dashboard') }}" class="d-inline-block float-end" style="max-width:300px;">
             <input type="text" name="search" class="form-control d-inline-block w-auto" placeholder="Search invoice # or customer" value="{{ request('search') }}">
             <select name="status" class="form-select d-inline-block w-auto ms-2">

@@ -86,7 +86,7 @@
 
         <div class="text-center">
             <p class="mb-2">ليس لديك حساب؟</p>
-            <a href="{{ route('register') }}" class="btn btn-outline-primary w-100">
+            <a href="{{ route('register.ar') }}" class="btn btn-outline-primary w-100">
                 <i class="fas fa-user-plus me-2"></i>
                 إنشاء حساب جديد
             </a>

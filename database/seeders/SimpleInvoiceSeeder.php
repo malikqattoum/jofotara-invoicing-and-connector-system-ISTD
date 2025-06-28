@@ -25,6 +25,7 @@ class SimpleInvoiceSeeder extends Seeder
                 'tax_amount' => rand(80, 800),
                 'status' => ['draft', 'submitted', 'rejected'][rand(0, 2)],
                 'currency' => 'JOD',
+                'uuid' => Str::uuid(),
             ]);
         }
 

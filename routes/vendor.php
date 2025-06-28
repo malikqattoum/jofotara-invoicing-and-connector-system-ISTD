@@ -107,26 +107,30 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendor')->name('vendor.')->g
         Route::post('/reports', [DashboardController::class, 'export'])->name('reports');
     });
 
-    // Customer Management
+    // Customer Management (commented out until CustomerController is created)
+    /*
     Route::prefix('customers')->name('customers.')->group(function () {
-        Route::get('/', 'CustomerController@index')->name('index');
-        Route::get('/create', 'CustomerController@create')->name('create');
-        Route::post('/', 'CustomerController@store')->name('store');
-        Route::get('/{customer}', 'CustomerController@show')->name('show');
-        Route::put('/{customer}', 'CustomerController@update')->name('update');
-        Route::delete('/{customer}', 'CustomerController@destroy')->name('destroy');
-        Route::get('/{customer}/invoices', 'CustomerController@invoices')->name('invoices');
-        Route::get('/{customer}/analytics', 'CustomerController@analytics')->name('analytics');
+        Route::get('/', [CustomerController::class, 'index'])->name('index');
+        Route::get('/create', [CustomerController::class, 'create'])->name('create');
+        Route::post('/', [CustomerController::class, 'store'])->name('store');
+        Route::get('/{customer}', [CustomerController::class, 'show'])->name('show');
+        Route::put('/{customer}', [CustomerController::class, 'update'])->name('update');
+        Route::delete('/{customer}', [CustomerController::class, 'destroy'])->name('destroy');
+        Route::get('/{customer}/invoices', [CustomerController::class, 'invoices'])->name('invoices');
+        Route::get('/{customer}/analytics', [CustomerController::class, 'analytics'])->name('analytics');
     });
+    */
 
-    // Notifications
+    // Notifications (commented out until NotificationController is created)
+    /*
     Route::prefix('notifications')->name('notifications.')->group(function () {
-        Route::get('/', 'NotificationController@index')->name('index');
-        Route::post('/{notification}/read', 'NotificationController@markAsRead')->name('read');
-        Route::post('/read-all', 'NotificationController@markAllAsRead')->name('read-all');
-        Route::get('/preferences', 'NotificationController@preferences')->name('preferences');
-        Route::put('/preferences', 'NotificationController@updatePreferences')->name('preferences.update');
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::post('/{notification}/read', [NotificationController::class, 'markAsRead'])->name('read');
+        Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');
+        Route::get('/preferences', [NotificationController::class, 'preferences'])->name('preferences');
+        Route::put('/preferences', [NotificationController::class, 'updatePreferences'])->name('preferences.update');
     });
+    */
 
     // Settings & Profile
     Route::prefix('settings')->name('settings.')->group(function () {
@@ -143,42 +147,52 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendor')->name('vendor.')->g
         Route::delete('/api/revoke-key/{key}', [SettingsController::class, 'revokeApiKey'])->name('api.revoke-key');
     });
 
-    // Webhooks
+    // Webhooks (commented out until WebhookController is created)
+    /*
     Route::prefix('webhooks')->name('webhooks.')->group(function () {
-        Route::get('/', 'WebhookController@index')->name('index');
-        Route::post('/', 'WebhookController@store')->name('store');
-        Route::get('/{webhook}', 'WebhookController@show')->name('show');
-        Route::put('/{webhook}', 'WebhookController@update')->name('update');
-        Route::delete('/{webhook}', 'WebhookController@destroy')->name('destroy');
-        Route::post('/{webhook}/test', 'WebhookController@test')->name('test');
-        Route::get('/{webhook}/logs', 'WebhookController@logs')->name('logs');
+        Route::get('/', [WebhookController::class, 'index'])->name('index');
+        Route::post('/', [WebhookController::class, 'store'])->name('store');
+        Route::get('/{webhook}', [WebhookController::class, 'show'])->name('show');
+        Route::put('/{webhook}', [WebhookController::class, 'update'])->name('update');
+        Route::delete('/{webhook}', [WebhookController::class, 'destroy'])->name('destroy');
+        Route::post('/{webhook}/test', [WebhookController::class, 'test'])->name('test');
+        Route::get('/{webhook}/logs', [WebhookController::class, 'logs'])->name('logs');
     });
+    */
 
-    // API Documentation (Vendor-specific)
-    Route::get('/api-docs', 'ApiDocController@index')->name('api-docs');
-    Route::get('/api-docs/endpoints', 'ApiDocController@endpoints')->name('api-docs.endpoints');
-    Route::get('/api-docs/examples', 'ApiDocController@examples')->name('api-docs.examples');
+    // API Documentation (commented out until ApiDocController is created)
+    /*
+    Route::get('/api-docs', [ApiDocController::class, 'index'])->name('api-docs');
+    Route::get('/api-docs/endpoints', [ApiDocController::class, 'endpoints'])->name('api-docs.endpoints');
+    Route::get('/api-docs/examples', [ApiDocController::class, 'examples'])->name('api-docs.examples');
+    */
 
-    // Support & Help
+    // Support & Help (commented out until SupportController is created)
+    /*
     Route::prefix('support')->name('support.')->group(function () {
-        Route::get('/', 'SupportController@index')->name('index');
-        Route::get('/tickets', 'SupportController@tickets')->name('tickets');
-        Route::post('/tickets', 'SupportController@createTicket')->name('tickets.create');
-        Route::get('/tickets/{ticket}', 'SupportController@showTicket')->name('tickets.show');
-        Route::post('/tickets/{ticket}/reply', 'SupportController@replyTicket')->name('tickets.reply');
-        Route::get('/faq', 'SupportController@faq')->name('faq');
-        Route::get('/documentation', 'SupportController@documentation')->name('documentation');
+        Route::get('/', [SupportController::class, 'index'])->name('index');
+        Route::get('/tickets', [SupportController::class, 'tickets'])->name('tickets');
+        Route::post('/tickets', [SupportController::class, 'createTicket'])->name('tickets.create');
+        Route::get('/tickets/{ticket}', [SupportController::class, 'showTicket'])->name('tickets.show');
+        Route::post('/tickets/{ticket}/reply', [SupportController::class, 'replyTicket'])->name('tickets.reply');
+        Route::get('/faq', [SupportController::class, 'faq'])->name('faq');
+        Route::get('/documentation', [SupportController::class, 'documentation'])->name('documentation');
     });
+    */
 
-    // Activity Log
-    Route::get('/activity', 'ActivityController@index')->name('activity');
-    Route::get('/activity/{activity}', 'ActivityController@show')->name('activity.show');
+    // Activity Log (commented out until ActivityController is created)
+    /*
+    Route::get('/activity', [ActivityController::class, 'index'])->name('activity');
+    Route::get('/activity/{activity}', [ActivityController::class, 'show'])->name('activity.show');
+    */
 
-    // Quick Actions (AJAX endpoints)
+    // Quick Actions (commented out until QuickActionController is created)
+    /*
     Route::prefix('quick')->name('quick.')->group(function () {
-        Route::post('/sync-all', 'QuickActionController@syncAll')->name('sync-all');
-        Route::post('/refresh-dashboard', 'QuickActionController@refreshDashboard')->name('refresh-dashboard');
-        Route::get('/search', 'QuickActionController@search')->name('search');
-        Route::get('/stats', 'QuickActionController@getStats')->name('stats');
+        Route::post('/sync-all', [QuickActionController::class, 'syncAll'])->name('sync-all');
+        Route::post('/refresh-dashboard', [QuickActionController::class, 'refreshDashboard'])->name('refresh-dashboard');
+        Route::get('/search', [QuickActionController::class, 'search'])->name('search');
+        Route::get('/stats', [QuickActionController::class, 'getStats'])->name('stats');
     });
+    */
 });

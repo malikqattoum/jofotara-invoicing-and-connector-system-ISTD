@@ -28,6 +28,12 @@ class User extends Authenticatable
         'tax_number',
         'role',
         'is_active',
+        'company_name',
+        'address',
+        'phone',
+        'settings',
+        'is_admin',
+        'organization_id'
     ];
 
     /**
@@ -50,6 +56,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'settings' => 'array',
+            'is_active' => 'boolean',
+            'is_admin' => 'boolean',
         ];
     }
 }

@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('integration_settings', function (Blueprint $table) {
-            $table->string('income_source_sequence')->nullable()->after('secret_key');
+            $table->string('income_source_sequence')->nullable()->after('is_active');
         });
     }
 

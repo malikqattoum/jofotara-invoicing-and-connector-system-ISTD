@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('integration_settings', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('organization_id')->nullable();
             $table->string('name');
             $table->string('vendor_type'); // xero, quickbooks, sap, etc.
             $table->json('configuration')->nullable(); // API credentials, tokens, etc.

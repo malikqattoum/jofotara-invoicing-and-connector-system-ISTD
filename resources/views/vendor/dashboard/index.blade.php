@@ -363,7 +363,7 @@
                             <a class="dropdown-item" href="{{ route('vendor.integrations.index') }}">Manage All</a>
                             <a class="dropdown-item" href="{{ route('vendor.integrations.create') }}">Add New</a>
                             <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="{{ route('vendor.integrations.logs') }}">View Logs</a>
+                            <a class="dropdown-item" href="{{ route('vendor.integration.logs') }}">View Logs</a>
                         </div>
                     </div>
                 </div>
@@ -500,7 +500,7 @@
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                     <h6 class="m-0 font-weight-bold text-primary">Recent Invoices</h6>
-                    <a href="{{ route('vendor.invoices') }}" class="btn btn-primary btn-sm">
+                    <a href="{{ route('vendor.invoices.index') }}" class="btn btn-primary btn-sm">
                         View All
                     </a>
                 </div>
@@ -570,7 +570,7 @@
                             <a href="{{ route('vendor.invoices.create') }}" class="btn btn-primary">
                                 <i class="fas fa-plus"></i> Create Invoice
                             </a>
-                            <a href="{{ route('vendor.integrations') }}" class="btn btn-outline-primary">
+                            <a href="{{ route('vendor.integrations.index') }}" class="btn btn-outline-primary">
                                 <i class="fas fa-plug"></i> Setup Integration
                             </a>
                         </div>
@@ -617,10 +617,10 @@
                     <div>
                         <h6 class="text-gray-700">Quick Actions</h6>
                         <div class="d-grid gap-2">
-                            <a href="{{ route('vendor.reports') }}" class="btn btn-outline-primary btn-sm">
+                            <a href="{{ route('vendor.reports.index') }}" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-chart-bar"></i> View Reports
                             </a>
-                            <a href="{{ route('vendor.analytics') }}" class="btn btn-outline-info btn-sm">
+                            <a href="{{ route('vendor.analytics.index') }}" class="btn btn-outline-info btn-sm">
                                 <i class="fas fa-analytics"></i> Analytics
                             </a>
                             <button class="btn btn-outline-success btn-sm" onclick="exportData('invoices', 'excel')">
@@ -639,6 +639,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 // Revenue Chart
+@if(isset($analytics['revenue_trend']) && count($analytics['revenue_trend']) > 0)
 const revenueCtx = document.getElementById('revenueChart').getContext('2d');
 const revenueChart = new Chart(revenueCtx, {
     type: 'line',
@@ -676,8 +677,10 @@ const revenueChart = new Chart(revenueCtx, {
         }
     }
 });
+@endif
 
 // Status Chart
+@if(isset($analytics['invoice_status_distribution']) && count($analytics['invoice_status_distribution']) > 0)
 const statusCtx = document.getElementById('statusChart').getContext('2d');
 const statusData = {!! json_encode($analytics['invoice_status_distribution']) !!};
 const statusChart = new Chart(statusCtx, {
@@ -704,6 +707,7 @@ const statusChart = new Chart(statusCtx, {
         }
     }
 });
+@endif
 
 // Real-time updates
 function refreshDashboard() {
@@ -725,7 +729,7 @@ function updateStats(stats) {
 }
 
 function exportData(type, format) {
-    window.location.href = `{{ route('vendor.export') }}?type=${type}&format=${format}`;
+    window.location.href = `{{ route('vendor.export.index') }}?type=${type}&format=${format}`;
 }
 
 // Payment Efficiency Chart - InvoiceQ Feature
@@ -760,27 +764,8 @@ new Chart(paymentCtx, {
 
 // Quick Actions
 function syncAllIntegrations() {
-    if (confirm('Are you sure you want to sync all integrations? This may take a few minutes.')) {
-        fetch('{{ route("vendor.quick.sync-all") }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Sync initiated successfully!');
-                refreshDashboard();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while syncing.');
-        });
-    }
+    // TODO: Implement quick sync functionality
+    alert('Quick sync functionality is not yet implemented. Please sync integrations individually.');
 }
 
 function generateQuickReport(type) {
@@ -908,7 +893,6 @@ setInterval(() => {
     </div>
 </div>
 
-@endsection
 
 @section('styles')
 <style>

@@ -11,33 +11,38 @@ class SyncLog extends Model
     use HasFactory;
 
     protected $fillable = [
-        'integration_setting_id',
+        'invoice_id',
+        'integration_id',
         'sync_type',
         'status',
-        'records_processed',
-        'duration_seconds',
-        'error_message',
-        'metadata',
         'started_at',
-        'completed_at'
+        'completed_at',
+        'result_message',
+        'error_message',
+        'error_details',
+        'metadata'
     ];
 
     protected $casts = [
         'metadata' => 'array',
+        'error_details' => 'array',
         'started_at' => 'datetime',
-        'completed_at' => 'datetime',
-        'records_processed' => 'integer',
-        'duration_seconds' => 'float'
+        'completed_at' => 'datetime'
     ];
 
-    public function integrationSetting(): BelongsTo
+    public function invoice(): BelongsTo
     {
-        return $this->belongsTo(IntegrationSetting::class);
+        return $this->belongsTo(Invoice::class);
     }
 
-    public function scopeSuccessful($query)
+    public function integration(): BelongsTo
     {
-        return $query->where('status', 'success');
+        return $this->belongsTo(IntegrationSetting::class, 'integration_id');
+    }
+
+    public function scopeCompleted($query)
+    {
+        return $query->where('status', 'completed');
     }
 
     public function scopeFailed($query)
@@ -45,14 +50,48 @@ class SyncLog extends Model
         return $query->where('status', 'failed');
     }
 
-    public function scopeRecent($query, int $days = 7)
+    public function scopePending($query)
     {
-        return $query->where('created_at', '>=', now()->subDays($days));
+        return $query->where('status', 'pending');
     }
 
-    public function scopeByType($query, string $type)
+    public function scopeOfType($query, string $type)
     {
         return $query->where('sync_type', $type);
+    }
+
+    public function scopeRecent($query, int $days = 7)
+    {
+        return $query->where('created_at', '>=', now()->subDays($days))
+                    ->orderBy('created_at', 'desc');
+    }
+
+    public function markAsCompleted(string $message = null): void
+    {
+        $this->update([
+            'status' => 'completed',
+            'completed_at' => now(),
+            'result_message' => $message
+        ]);
+    }
+
+    public function markAsFailed(string $errorMessage, array $errorDetails = null): void
+    {
+        $this->update([
+            'status' => 'failed',
+            'completed_at' => now(),
+            'error_message' => $errorMessage,
+            'error_details' => $errorDetails
+        ]);
+    }
+
+    public function getDurationMinutesAttribute(): int
+    {
+        if (!$this->started_at || !$this->completed_at) {
+            return 0;
+        }
+
+        return $this->started_at->diffInMinutes($this->completed_at);
     }
 
     public function getFormattedDurationAttribute(): string

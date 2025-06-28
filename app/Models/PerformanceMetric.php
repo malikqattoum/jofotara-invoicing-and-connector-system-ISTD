@@ -11,11 +11,12 @@ class PerformanceMetric extends Model
     use HasFactory;
 
     protected $fillable = [
-        'type',
+        'metric_name',
         'value',
+        'unit',
+        'category',
         'metadata',
-        'recorded_at',
-        'integration_id'
+        'recorded_at'
     ];
 
     protected $casts = [
@@ -29,13 +30,23 @@ class PerformanceMetric extends Model
         return $this->belongsTo(IntegrationSetting::class);
     }
 
-    public function scopeByType($query, string $type)
+    public function scopeForCategory($query, string $category)
     {
-        return $query->where('type', $type);
+        return $query->where('category', $category);
+    }
+
+    public function scopeToday($query)
+    {
+        return $query->whereDate('recorded_at', today());
     }
 
     public function scopeRecent($query, int $hours = 24)
     {
         return $query->where('recorded_at', '>=', now()->subHours($hours));
+    }
+
+    public function scopeByMetricName($query, string $metricName)
+    {
+        return $query->where('metric_name', $metricName);
     }
 }

@@ -33,4 +33,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/certificates/upload', [CertificateController::class, 'upload']);
     Route::get('/invoices/{id}/pdf', [InvoiceController::class, 'downloadPdf']);
     Route::get('/invoices/{id}/xml', [InvoiceController::class, 'downloadXml']);
+
+    // Integration management API routes
+    Route::prefix('integrations')->group(function () {
+        Route::post('/test-connection', [App\Http\Controllers\Api\IntegrationController::class, 'testConnection']);
+        Route::post('/{integration}/test', [App\Http\Controllers\Api\IntegrationController::class, 'testIntegration']);
+        Route::post('/{integration}/sync', [App\Http\Controllers\Api\IntegrationController::class, 'forceSync']);
+        Route::delete('/{integration}', [App\Http\Controllers\Api\IntegrationController::class, 'destroy']);
+    });
 });

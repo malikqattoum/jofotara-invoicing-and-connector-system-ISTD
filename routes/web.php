@@ -4,7 +4,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\VendorProfileController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\Vendor\DashboardController as VendorDashboardController;
+use App\Http\Controllers\VendorDashboardController;
+use Illuminate\Support\Facades\Auth;
+
+Auth::routes();
 
 Route::get('/', function () {
     return view('landing');
@@ -36,6 +39,9 @@ Route::middleware('auth')->prefix('vendor')->name('vendor.')->group(function () 
     // Main Dashboard
     Route::get('/dashboard', [VendorDashboardController::class, 'index'])->name('dashboard.index');
 
+    // Integration logs (general view for all integrations)
+    Route::get('/integration-logs', [VendorDashboardController::class, 'integrationLogs'])->name('integration.logs');
+
     // Test route for dashboard
     Route::get('/test-dashboard', function() {
         return view('vendor.dashboard.simple', [
@@ -53,40 +59,9 @@ Route::middleware('auth')->prefix('vendor')->name('vendor.')->group(function () 
         ]);
     })->name('test-dashboard');
 
-    // Invoice Management
-    Route::get('/invoices', [VendorDashboardController::class, 'invoices'])->name('invoices.index');
-    Route::get('/invoices/{invoice}', [VendorDashboardController::class, 'showInvoice'])->name('invoices.show');
-    Route::get('/invoices/{invoice}/download', [VendorDashboardController::class, 'downloadInvoice'])->name('invoices.download');
-    Route::get('/invoices/{invoice}/print', [VendorDashboardController::class, 'printInvoice'])->name('invoices.print');
+    // Note: Vendor routes have been moved to routes/vendor.php for better organization
 
-    // Reports & Analytics
-    Route::get('/reports', [VendorDashboardController::class, 'reports'])->name('reports.index');
-    Route::get('/reports/revenue', [VendorDashboardController::class, 'reports'])->name('reports.revenue');
-    Route::get('/reports/customers', [VendorDashboardController::class, 'reports'])->name('reports.customers');
-    Route::get('/analytics', [VendorDashboardController::class, 'analytics'])->name('analytics.index');
-
-    // Integration Management
-    Route::get('/integrations', [VendorDashboardController::class, 'integrations'])->name('integrations.index');
-    Route::get('/integrations/create', function() { return view('vendor.integrations.create'); })->name('integrations.create');
-    Route::get('/integrations/logs', function() { return view('vendor.integrations.logs'); })->name('integrations.logs');
-
-    // Settings
-    Route::get('/settings', [VendorDashboardController::class, 'settings'])->name('settings.index');
-    Route::post('/settings', [VendorDashboardController::class, 'updateSettings'])->name('settings.update');
-
-    // Data Export
-    Route::get('/export', [VendorDashboardController::class, 'export'])->name('export');
-    Route::get('/export/invoices', [VendorDashboardController::class, 'export'])->name('export.invoices');
-    Route::get('/export/revenue', [VendorDashboardController::class, 'export'])->name('export.revenue');
-
-    // Real-time Data & Quick Actions
-    Route::get('/real-time-data', [VendorDashboardController::class, 'getRealTimeData'])->name('real-time-data');
-    Route::post('/quick/sync-all', function() {
-        return response()->json(['success' => true, 'message' => 'Sync initiated']);
-    })->name('quick.sync-all');
-
-    // Invoice Creation (placeholder route)
-    Route::get('/invoices/create', function() { return view('vendor.invoices.create'); })->name('invoices.create');
+    // These routes should also be moved to vendor.php if needed
 });
 
 Route::middleware(['auth', 'can:admin-panel'])->group(function () {
@@ -94,3 +69,5 @@ Route::middleware(['auth', 'can:admin-panel'])->group(function () {
     Route::get('/admin/vendors', [AdminController::class, 'index'])->name('admin.vendors');
     Route::post('/admin/vendors/{id}/toggle', [AdminController::class, 'toggleVendor'])->name('admin.toggleVendor');
 });
+
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');

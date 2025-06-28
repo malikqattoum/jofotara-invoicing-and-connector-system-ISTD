@@ -61,9 +61,12 @@ class DashboardController extends Controller
         // $alerts = $this->getSystemAlerts($organizationId);
         // $complianceStatus = $this->getComplianceStatus($organizationId);
 
-        // For now, use the simple dashboard view with basic data
-        return view('vendor.dashboard.simple', compact(
-            'stats', 'recentInvoices', 'integrations'
+        // Get analytics data for charts
+        $analytics = $this->getVendorAnalytics($vendor->id);
+
+        // Use the main dashboard view with analytics data
+        return view('vendor.dashboard.index', compact(
+            'stats', 'recentInvoices', 'integrations', 'analytics'
         ));
     }
 
