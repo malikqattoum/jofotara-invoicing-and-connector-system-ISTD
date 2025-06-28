@@ -17,7 +17,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register services
+        $this->app->singleton(\App\Services\AI\DataIntelligenceService::class);
+        $this->app->singleton(\App\Services\Analytics\AnalyticsDashboardService::class);
+        $this->app->singleton(\App\Services\Reporting\ReportingService::class);
     }
 
     /**

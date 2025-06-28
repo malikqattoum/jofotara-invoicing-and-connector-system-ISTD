@@ -61,4 +61,28 @@ class User extends Authenticatable
             'is_admin' => 'boolean',
         ];
     }
+
+    /**
+     * Get the invoices for the user.
+     */
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'vendor_id');
+    }
+
+    /**
+     * Get the integration settings for the user.
+     */
+    public function integrationSettings()
+    {
+        return $this->hasMany(IntegrationSetting::class, 'vendor_id');
+    }
+
+    /**
+     * Get the organization that owns the user.
+     */
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class);
+    }
 }

@@ -100,8 +100,13 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendor')->name('vendor.')->g
 
     // Data Export
     Route::prefix('export')->name('export.')->group(function () {
-        Route::get('/', [DashboardController::class, 'export'])->name('index');
-        Route::post('/invoices', [DashboardController::class, 'export'])->name('invoices');
+        Route::get('/', function() {
+            return view('vendor.export.index');
+        })->name('index');
+        Route::get('/invoices', function() {
+            return view('vendor.export.invoices');
+        })->name('invoices');
+        Route::post('/invoices', [DashboardController::class, 'export'])->name('invoices.download');
         Route::post('/revenue', [DashboardController::class, 'export'])->name('revenue');
         Route::post('/customers', [DashboardController::class, 'export'])->name('customers');
         Route::post('/reports', [DashboardController::class, 'export'])->name('reports');
@@ -134,8 +139,8 @@ Route::middleware(['auth', 'role:vendor'])->prefix('vendor')->name('vendor.')->g
 
     // Settings & Profile
     Route::prefix('settings')->name('settings.')->group(function () {
-        Route::get('/', [DashboardController::class, 'settings'])->name('index');
-        Route::put('/', [DashboardController::class, 'updateSettings'])->name('update');
+        Route::get('/', [SettingsController::class, 'index'])->name('index');
+        Route::post('/', [SettingsController::class, 'update'])->name('update');
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile');
         Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
         Route::get('/security', [ProfileController::class, 'security'])->name('security');

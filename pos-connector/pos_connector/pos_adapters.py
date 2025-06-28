@@ -10,7 +10,7 @@ import sqlite3
 import pyodbc
 import pymysql
 import psycopg2
-import cx_Oracle
+# import cx_Oracle
 import pandas as pd
 import xml.etree.ElementTree as ET
 import csv
@@ -241,8 +241,8 @@ class GenericSQLAdapter(BasePOSAdapter):
                 return psycopg2.connect(self.connection_string)
             elif self.db_type == 'mssql':
                 return pyodbc.connect(self.connection_string)
-            elif self.db_type == 'oracle':
-                return cx_Oracle.connect(self.connection_string)
+            # elif self.db_type == 'oracle':
+            #     return cx_Oracle.connect(self.connection_string)
             else:
                 return pyodbc.connect(self.connection_string)  # Generic ODBC
         except Exception as e:

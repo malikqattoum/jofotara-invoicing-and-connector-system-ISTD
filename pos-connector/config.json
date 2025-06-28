@@ -1,0 +1,9 @@
+{
+    "base_url": "http://localhost:8000",
+    "email": "malikqattom@gmail.com",
+    "password": "Malik@1234",
+    "sync_interval": 60,
+    "auto_submit_jofotara": false,
+    "detection_mode": "1",
+    "log_level": "INFO"
+}

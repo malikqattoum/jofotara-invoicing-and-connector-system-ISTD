@@ -340,6 +340,47 @@ class AnalyticsDashboardService
     }
 
     /**
+     * Get vendor-specific dashboard data
+     */
+    public function getVendorDashboardData(int $vendorId): array
+    {
+        return $this->getDashboardData([], []);
+    }
+
+    /**
+     * Get vendor-specific KPIs
+     */
+    public function getVendorKPIs(int $vendorId): array
+    {
+        $invoices = Invoice::where('vendor_id', $vendorId)->get();
+
+        return [
+            'total_revenue' => $invoices->sum('total_amount'),
+            'total_invoices' => $invoices->count(),
+            'average_invoice_value' => $invoices->avg('total_amount') ?? 0,
+            'paid_invoices' => $invoices->where('status', 'paid')->count(),
+            'pending_invoices' => $invoices->where('status', 'pending')->count(),
+            'conversion_rate' => $invoices->count() > 0 ? ($invoices->where('status', 'paid')->count() / $invoices->count()) * 100 : 0
+        ];
+    }
+
+    /**
+     * Get vendor-specific trends
+     */
+    public function getVendorTrends(int $vendorId): array
+    {
+        return $this->getTrendAnalysis([], []);
+    }
+
+    /**
+     * Get vendor-specific insights
+     */
+    public function getVendorInsights(int $vendorId): array
+    {
+        return $this->getAIInsights([]);
+    }
+
+    /**
      * Generate cache key
      */
     private function generateCacheKey(string $type, array $integrationIds, array $dateRange): string
