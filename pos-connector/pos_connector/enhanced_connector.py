@@ -176,6 +176,8 @@ class EnhancedPOSConnector:
             'service': ServiceAdapter(),
             'com': COMAdapter(),
             'wmi': WMIAdapter(),
+            'aronium': AroniumPOSAdapter(),
+            'universal': UniversalPOSAdapter(),
         }
 
         self.logger.info(f"Loaded {len(self.pos_adapters)} POS adapters")
@@ -187,34 +189,57 @@ class EnhancedPOSConnector:
         self.logger.info("Starting POS system discovery...")
         discovered_systems = []
 
-        # Use multiple discovery methods
-        discovery_methods = [
-            self._discover_by_registry,
-            self._discover_by_services,
-            self._discover_by_processes,
-            self._discover_by_files,
-            self._discover_by_databases,
-            self._discover_by_network,
-            self._discover_by_common_paths,
+        # Use multiple discovery methods with names for logging
+        # Start with faster methods first, then slower ones
+        fast_discovery_methods = [
+            ("Services Scan", self._discover_by_services),
+            ("Processes Scan", self._discover_by_processes),
         ]
 
-        # Run discovery methods concurrently
-        with ThreadPoolExecutor(max_workers=len(discovery_methods)) as executor:
-            futures = [executor.submit(method) for method in discovery_methods]
+        slow_discovery_methods = [
+            ("Registry Scan", self._discover_by_registry),
+            ("Files Scan", self._discover_by_files),
+            ("Databases Scan", self._discover_by_databases),
+            ("Network Scan", self._discover_by_network),
+            ("Common Paths Scan", self._discover_by_common_paths),
+        ]
 
-            for future in as_completed(futures):
+        # Check if we should run quick discovery only
+        quick_discovery = self.config.get('quick_discovery', False)
+        discovery_methods = fast_discovery_methods if quick_discovery else (fast_discovery_methods + slow_discovery_methods)
+
+        # Run discovery methods concurrently with timeout
+        with ThreadPoolExecutor(max_workers=len(discovery_methods)) as executor:
+            # Submit all tasks with names
+            futures = {}
+            for method_name, method_func in discovery_methods:
+                future = executor.submit(method_func)
+                futures[future] = method_name
+                self.logger.info(f"Started {method_name}...")
+
+            # Process completed futures with timeout
+            for future in as_completed(futures, timeout=120):  # 2 minute timeout per method
+                method_name = futures[future]
                 try:
-                    systems = future.result()
+                    self.logger.info(f"Processing results from {method_name}...")
+                    systems = future.result(timeout=30)  # 30 second timeout for result
                     if systems:
                         discovered_systems.extend(systems)
+                        self.logger.info(f"{method_name} found {len(systems)} potential systems")
+                    else:
+                        self.logger.info(f"{method_name} completed - no systems found")
                 except Exception as e:
-                    self.logger.error(f"Discovery method failed: {e}")
+                    self.logger.error(f"{method_name} failed: {e}")
+
+        self.logger.info(f"Discovery phase completed. Found {len(discovered_systems)} potential systems")
 
         # Remove duplicates and validate systems
         unique_systems = self._deduplicate_systems(discovered_systems)
+        self.logger.info(f"After deduplication: {len(unique_systems)} unique systems")
+
         validated_systems = await self._validate_systems(unique_systems)
 
-        self.logger.info(f"Discovered {len(validated_systems)} POS systems")
+        self.logger.info(f"Discovered {len(validated_systems)} valid POS systems")
         return validated_systems
 
     def _discover_by_registry(self) -> List[Dict[str, Any]]:
@@ -238,6 +263,14 @@ class EnhancedPOSConnector:
                 'erply', 'epos', 'tillpoint', 'retail pro', 'counterpoint'
             ]
 
+            # Exclude common false positives from registry
+            registry_exclude_keywords = [
+                'microsoft', 'windows', 'office', 'visual studio', 'adobe',
+                'google', 'chrome', 'firefox', 'java', 'intel', 'nvidia',
+                'realtek', 'driver', 'framework', 'runtime', '.net',
+                'directx', 'steam', 'epic games', 'antivirus'
+            ]
+
             for hkey, subkey_path in registry_paths:
                 try:
                     with winreg.OpenKey(hkey, subkey_path) as key:
@@ -247,7 +280,15 @@ class EnhancedPOSConnector:
                                 with winreg.OpenKey(key, subkey_name) as subkey:
                                     try:
                                         display_name = winreg.QueryValueEx(subkey, "DisplayName")[0]
-                                        if any(keyword in display_name.lower() for keyword in pos_keywords):
+                                        display_name_lower = display_name.lower()
+
+                                        # Check if it matches POS keywords
+                                        has_pos_keyword = any(keyword in display_name_lower for keyword in pos_keywords)
+
+                                        # Check if it should be excluded
+                                        should_exclude = any(keyword in display_name_lower for keyword in registry_exclude_keywords)
+
+                                        if has_pos_keyword and not should_exclude:
                                             install_location = ""
                                             try:
                                                 install_location = winreg.QueryValueEx(subkey, "InstallLocation")[0]
@@ -282,10 +323,31 @@ class EnhancedPOSConnector:
         systems = []
 
         try:
+            # Universal POS system keywords (balanced - inclusive but not too broad)
             pos_service_keywords = [
-                'pos', 'retail', 'cash', 'checkout', 'square', 'shopify',
-                'quickbooks', 'sage', 'dynamics', 'micros', 'aloha',
-                'toast', 'ncr', 'point of sale'
+                'pos ', 'point of sale', 'cash register', 'checkout',
+                'till ', 'epos', 'pos system', 'pos software',
+                'retail management', 'restaurant pos', 'store pos',
+                'square', 'shopify', 'quickbooks', 'sage', 'dynamics',
+                'micros', 'aloha', 'toast', 'ncr', 'clover', 'lightspeed',
+                'revel', 'vend', 'shopkeep', 'talech', 'loyverse', 'erply',
+                'tillpoint', 'retail pro', 'counterpoint', 'aronium'
+            ]
+
+            # Windows services to exclude (common false positives)
+            exclude_keywords = [
+                'microsoft', 'windows', 'defender', 'edge', 'office',
+                'bitlocker', 'passport', 'encryption', 'antivirus',
+                'update', 'sms', 'shadow', 'backup', 'system',
+                'cloud', 'identity', 'wireless', 'device management',
+                'aswb', 'avast', 'efs', 'encrypting file system',
+                'state repository', 'repository service', 'adobe',
+                'google', 'chrome', 'firefox', 'java', 'intel',
+                'nvidia', 'realtek', 'bluetooth', 'audio', 'driver',
+                'framework', 'runtime', 'visual studio', 'sql server',
+                '.net', 'directx', 'steam', 'epic games', 'interface service',
+                'demo service', 'nfc/se manager', 'image acquisition',
+                'user data storage', 'network store', 'still image'
             ]
 
             for service in psutil.win_service_iter():
@@ -294,8 +356,15 @@ class EnhancedPOSConnector:
                     service_name = service_info.get('name', '').lower()
                     display_name = service_info.get('display_name', '').lower()
 
-                    if any(keyword in service_name or keyword in display_name
-                           for keyword in pos_service_keywords):
+                    # Check if it matches POS keywords
+                    has_pos_keyword = any(keyword in service_name or keyword in display_name
+                                         for keyword in pos_service_keywords)
+
+                    # Check if it should be excluded
+                    should_exclude = any(keyword in service_name or keyword in display_name
+                                        for keyword in exclude_keywords)
+
+                    if has_pos_keyword and not should_exclude:
 
                         # Get executable path
                         try:
@@ -325,9 +394,31 @@ class EnhancedPOSConnector:
         systems = []
 
         try:
+            # Universal business software keywords (catch any potential POS)
             pos_process_keywords = [
-                'pos', 'retail', 'cash', 'square', 'shopify', 'quickbooks',
-                'sage', 'dynamics', 'micros', 'aloha', 'toast', 'ncr'
+                # Direct POS terms
+                'pos', 'point-of-sale', 'cash-register', 'checkout', 'till', 'epos',
+                'register', 'posapp', 'cashier', 'terminal',
+                # Business software that could be POS
+                'restaurant', 'retail', 'store', 'shop', 'merchant', 'business',
+                'invoice', 'billing', 'receipt', 'sale', 'payment', 'order',
+                'inventory', 'customer', 'transaction', 'accounting',
+                # Specific POS systems
+                'square', 'shopify', 'quickbooks', 'sage', 'dynamics',
+                'micros', 'aloha', 'toast', 'ncr', 'clover', 'lightspeed',
+                'revel', 'vend', 'shopkeep', 'talech', 'loyverse', 'erply',
+                'tillpoint', 'retail pro', 'counterpoint', 'aronium',
+                # Common business app patterns
+                'manager', 'admin', 'system', 'software', 'app'
+            ]
+
+            # Exclude non-business processes
+            exclude_process_keywords = [
+                'microsoft', 'windows', 'system32', 'office', 'word', 'excel',
+                'chrome', 'firefox', 'edge', 'browser', 'antivirus', 'defender',
+                'adobe', 'acrobat', 'reader', 'steam', 'game', 'nvidia', 'intel',
+                'driver', 'service', 'svchost', 'explorer', 'taskmgr', 'notepad',
+                'calculator', 'paint', 'cmd', 'powershell', 'conhost'
             ]
 
             for proc in psutil.process_iter(['pid', 'name', 'exe', 'cmdline']):
@@ -335,7 +426,13 @@ class EnhancedPOSConnector:
                     process_info = proc.info
                     process_name = process_info.get('name', '').lower()
 
-                    if any(keyword in process_name for keyword in pos_process_keywords):
+                    # Check if it matches business/POS keywords
+                    has_pos_keyword = any(keyword in process_name for keyword in pos_process_keywords)
+
+                    # Check if it should be excluded
+                    should_exclude = any(keyword in process_name for keyword in exclude_process_keywords)
+
+                    if has_pos_keyword and not should_exclude:
                         systems.append({
                             'name': process_info.get('name'),
                             'type': 'process',
@@ -376,11 +473,21 @@ class EnhancedPOSConnector:
                 os.path.expanduser("~\\AppData\\Roaming"),
             ]
 
+            # Universal business software patterns
             pos_file_patterns = [
-                'pos*.exe', 'retail*.exe', 'cash*.exe', 'checkout*.exe',
-                'square*.exe', 'shopify*.exe', 'quickbooks*.exe',
-                'pos*.db', 'pos*.mdb', 'pos*.accdb',
-                'sales*.db', 'transactions*.db'
+                # Executable patterns
+                'pos*.exe', 'retail*.exe', 'store*.exe', 'shop*.exe', 'cash*.exe',
+                'checkout*.exe', 'till*.exe', 'register*.exe', 'payment*.exe',
+                'invoice*.exe', 'billing*.exe', 'order*.exe', 'sale*.exe',
+                'business*.exe', 'restaurant*.exe', 'merchant*.exe',
+                # Database patterns
+                'pos*.db', 'retail*.db', 'store*.db', 'shop*.db', 'sales*.db',
+                'transactions*.db', 'orders*.db', 'customers*.db', 'invoice*.db',
+                'pos*.mdb', 'pos*.accdb', 'retail*.mdb', 'sales*.mdb',
+                # Data file patterns
+                'pos*.sqlite', 'sales*.sqlite', 'transactions*.sqlite',
+                'pos*.csv', 'sales*.csv', 'orders*.csv', 'invoices*.csv',
+                'pos*.json', 'sales*.json', 'transactions*.json'
             ]
 
             for search_path in search_paths:
@@ -414,13 +521,14 @@ class EnhancedPOSConnector:
         systems = []
 
         try:
-            # Database file extensions to look for
-            db_extensions = ['.db', '.sqlite', '.sqlite3', '.mdb', '.accdb', '.dbf']
+            # Universal database file extensions
+            db_extensions = ['.db', '.sqlite', '.sqlite3', '.mdb', '.accdb', '.dbf', '.sdf', '.ldf', '.mdf']
 
-            # Common database locations
+            # Universal business data locations
             db_search_paths = [
-                r"C:\POS",
-                r"C:\Data",
+                r"C:\POS", r"C:\Data", r"C:\Business", r"C:\Store", r"C:\Retail",
+                r"C:\Restaurant", r"C:\Shop", r"C:\Sales", r"C:\Inventory",
+                r"C:\Program Files", r"C:\Program Files (x86)",
                 os.path.expanduser("~\\Documents"),
                 os.path.expanduser("~\\AppData\\Local"),
                 os.path.expanduser("~\\AppData\\Roaming"),
@@ -639,7 +747,14 @@ class EnhancedPOSConnector:
                 # Try to determine the best adapter for this system
                 adapter = await self._get_adapter_for_system(system)
                 if adapter:
-                    system['adapter'] = adapter.__class__.__name__
+                    # Find the adapter key from pos_adapters dictionary
+                    adapter_key = None
+                    for key, value in self.pos_adapters.items():
+                        if value.__class__.__name__ == adapter.__class__.__name__:
+                            adapter_key = key
+                            break
+
+                    system['adapter'] = adapter_key
                     system['validated'] = True
                     validated_systems.append(system)
                 else:
@@ -657,7 +772,9 @@ class EnhancedPOSConnector:
         system_name = system.get('name', '').lower()
 
         # Try specific adapters first
-        if 'square' in system_name:
+        if 'aronium' in system_name:
+            return self.pos_adapters.get('aronium')
+        elif 'square' in system_name:
             return self.pos_adapters.get('square')
         elif 'shopify' in system_name:
             return self.pos_adapters.get('shopify')
@@ -690,7 +807,7 @@ class EnhancedPOSConnector:
             elif file_type in ['.xls', '.xlsx']:
                 return self.pos_adapters.get('excel')
 
-        # Default to generic adapters
+        # Default to universal adapter for unknown systems
         if system_type in ['database', 'sql_server']:
             return self.pos_adapters.get('generic_sql')
         elif system_type == 'file_based':
@@ -698,7 +815,8 @@ class EnhancedPOSConnector:
         elif system_type == 'network_service':
             return self.pos_adapters.get('generic_api')
 
-        return self.pos_adapters.get('generic_sql')  # Default fallback
+        # Use universal adapter as the ultimate fallback - it can handle any POS system
+        return self.pos_adapters.get('universal')
 
     async def start_monitoring(self):
         """Start monitoring all discovered POS systems"""
@@ -740,10 +858,10 @@ class EnhancedPOSConnector:
         try:
             # Get the appropriate adapter
             adapter_name = system.get('adapter')
-            adapter = self.pos_adapters.get(adapter_name.lower().replace('adapter', ''))
+            adapter = self.pos_adapters.get(adapter_name)
 
             if not adapter:
-                self.logger.error(f"No adapter found for {system_name}")
+                self.logger.error(f"No adapter found for {system_name} (adapter_name: {adapter_name})")
                 return
 
             # Configure adapter

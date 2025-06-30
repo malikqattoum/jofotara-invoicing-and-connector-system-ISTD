@@ -1,7 +1,10 @@
 {
-    "base_url": "http://localhost:8000",
+    "base_url": "http://127.0.0.1:8000",
     "email": "malikqattom@gmail.com",
-    "password": "Malik@1234",
+    "vendor_id": 2,
+    "token": "2|P56YB6jvP17ZTDhyK23MfBvxdvZZrc4Zq5riRMuP66b9444e",
+    "token_expiry": "2025-07-01T13:18:10.147906",
+    "quick_discovery": false,
     "sync_interval": 60,
     "auto_submit_jofotara": false,
     "detection_mode": "1",

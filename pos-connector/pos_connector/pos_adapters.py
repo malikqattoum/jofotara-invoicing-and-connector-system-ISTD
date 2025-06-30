@@ -7,18 +7,47 @@ Each adapter handles the specific connection and data extraction for a particula
 import os
 import json
 import sqlite3
-import pyodbc
-import pymysql
-import psycopg2
-# import cx_Oracle
-import pandas as pd
+# Optional imports for different database types
+try:
+    import pyodbc
+except ImportError:
+    pyodbc = None
+
+try:
+    import pymysql
+except ImportError:
+    pymysql = None
+
+try:
+    import psycopg2
+except ImportError:
+    psycopg2 = None
+
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
 import xml.etree.ElementTree as ET
 import csv
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None
 import time
-import winreg
-import win32com.client
-import wmi
+try:
+    import winreg
+except ImportError:
+    winreg = None
+
+try:
+    import win32com.client
+except ImportError:
+    win32com = None
+
+try:
+    import wmi
+except ImportError:
+    wmi = None
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 from abc import ABC, abstractmethod
@@ -699,3 +728,379 @@ class WMIAdapter(BasePOSAdapter):
 
     def get_new_transactions(self, since: datetime) -> List[Dict[str, Any]]:
         return []
+
+class AroniumPOSAdapter(BasePOSAdapter):
+    """Adapter for Aronium POS system"""
+
+    def configure(self, system_config: Dict[str, Any]):
+        self.config = system_config
+        self.logger.info("Aronium POS adapter configured")
+
+    def test_connection(self) -> bool:
+        # Check if Aronium POS process is running
+        try:
+            import psutil
+            for proc in psutil.process_iter(['pid', 'name']):
+                if 'aronium' in proc.info['name'].lower():
+                    return True
+            return False
+        except Exception as e:
+            self.logger.error(f"Failed to test Aronium connection: {e}")
+            return False
+
+    def get_new_transactions(self, since: datetime) -> List[Dict[str, Any]]:
+        # Look for Aronium database files in common locations
+        transactions = []
+
+        try:
+            # Common Aronium database locations
+            possible_paths = [
+                os.path.expanduser("~/Documents/Aronium"),
+                os.path.expanduser("~/AppData/Local/Aronium"),
+                "C:/ProgramData/Aronium",
+                "C:/Program Files/Aronium",
+                "C:/Program Files (x86)/Aronium"
+            ]
+
+            for base_path in possible_paths:
+                if os.path.exists(base_path):
+                    # Look for SQLite database files
+                    for root, dirs, files in os.walk(base_path):
+                        for file in files:
+                            if file.endswith('.db') or file.endswith('.sqlite'):
+                                db_path = os.path.join(root, file)
+                                try:
+                                    transactions.extend(self._extract_from_sqlite(db_path, since))
+                                except Exception as e:
+                                    self.logger.debug(f"Could not read {db_path}: {e}")
+
+            self.logger.info(f"Found {len(transactions)} new transactions from Aronium POS")
+
+        except Exception as e:
+            self.logger.error(f"Failed to get Aronium transactions: {e}")
+
+        return transactions
+
+    def _extract_from_sqlite(self, db_path: str, since: datetime) -> List[Dict[str, Any]]:
+        """Extract transactions from Aronium SQLite database"""
+        transactions = []
+
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            # Common table names in Aronium POS
+            table_queries = [
+                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%transaction%'",
+                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%sale%'",
+                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%receipt%'",
+                "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%invoice%'"
+            ]
+
+            tables = set()
+            for query in table_queries:
+                cursor.execute(query)
+                tables.update([row[0] for row in cursor.fetchall()])
+
+            for table in tables:
+                try:
+                    # Get table structure
+                    cursor.execute(f"PRAGMA table_info({table})")
+                    columns = [col[1] for col in cursor.fetchall()]
+
+                    # Look for date/timestamp columns
+                    date_columns = [col for col in columns if any(word in col.lower() for word in ['date', 'time', 'created', 'timestamp'])]
+
+                    if date_columns:
+                        date_col = date_columns[0]
+                        since_str = since.strftime('%Y-%m-%d %H:%M:%S')
+
+                        query = f"SELECT * FROM {table} WHERE {date_col} > ? ORDER BY {date_col} DESC LIMIT 100"
+                        cursor.execute(query, (since_str,))
+
+                        rows = cursor.fetchall()
+                        for row in rows:
+                            transaction = dict(zip(columns, row))
+                            transaction['source_table'] = table
+                            transaction['pos_system'] = 'Aronium POS'
+                            transactions.append(transaction)
+
+                except Exception as e:
+                    self.logger.debug(f"Could not read table {table}: {e}")
+
+            conn.close()
+
+        except Exception as e:
+            self.logger.debug(f"Could not connect to {db_path}: {e}")
+
+        return transactions
+
+class UniversalPOSAdapter(BasePOSAdapter):
+    """Universal adapter that can work with any POS system by auto-detecting data sources"""
+
+    def configure(self, system_config: Dict[str, Any]):
+        self.config = system_config
+        self.system_name = system_config.get('name', 'Unknown POS')
+        self.executable_path = system_config.get('executable_path', '')
+        self.install_path = system_config.get('install_path', '')
+        self.logger.info(f"Universal POS adapter configured for {self.system_name}")
+
+    def test_connection(self) -> bool:
+        # Always return True since we'll try multiple methods
+        return True
+
+    def get_new_transactions(self, since: datetime) -> List[Dict[str, Any]]:
+        """Auto-detect and extract transactions from any POS system"""
+        transactions = []
+
+        try:
+            self.logger.info(f"Auto-detecting data sources for {self.system_name}...")
+
+            # Method 1: Look for databases near the executable
+            if self.executable_path:
+                transactions.extend(self._find_databases_near_exe(since))
+
+            # Method 2: Look in common POS data directories
+            transactions.extend(self._scan_common_directories(since))
+
+            # Method 3: Look for common POS file patterns
+            transactions.extend(self._scan_for_pos_files(since))
+
+            self.logger.info(f"Found {len(transactions)} transactions from {self.system_name}")
+
+        except Exception as e:
+            self.logger.error(f"Failed to get transactions from {self.system_name}: {e}")
+
+        return transactions
+
+    def _find_databases_near_exe(self, since: datetime) -> List[Dict[str, Any]]:
+        """Look for database files near the POS executable"""
+        transactions = []
+
+        if not self.executable_path or not os.path.exists(self.executable_path):
+            return transactions
+
+        try:
+            exe_dir = os.path.dirname(self.executable_path)
+
+            # Search in executable directory and subdirectories
+            for root, dirs, files in os.walk(exe_dir):
+                for file in files:
+                    file_lower = file.lower()
+                    file_path = os.path.join(root, file)
+
+                    try:
+                        if file_lower.endswith(('.db', '.sqlite', '.sqlite3')):
+                            transactions.extend(self._extract_from_sqlite(file_path, since))
+                        elif file_lower.endswith(('.csv', '.txt')):
+                            if any(keyword in file_lower for keyword in ['transaction', 'sale', 'receipt', 'invoice']):
+                                transactions.extend(self._extract_from_csv(file_path, since))
+                        elif file_lower.endswith('.json'):
+                            transactions.extend(self._extract_from_json(file_path, since))
+                    except Exception as e:
+                        self.logger.debug(f"Could not read {file_path}: {e}")
+
+        except Exception as e:
+            self.logger.debug(f"Error scanning exe directory: {e}")
+
+        return transactions
+
+    def _scan_common_directories(self, since: datetime) -> List[Dict[str, Any]]:
+        """Scan common POS data directories"""
+        transactions = []
+
+        common_paths = [
+            os.path.expanduser("~/Documents"),
+            os.path.expanduser("~/AppData/Local"),
+            os.path.expanduser("~/AppData/Roaming"),
+            "C:/ProgramData",
+            "C:/Data",
+            "C:/POS_Data",
+        ]
+
+        # Add install path if available
+        if self.install_path and os.path.exists(self.install_path):
+            common_paths.insert(0, self.install_path)
+
+        for base_path in common_paths:
+            if os.path.exists(base_path):
+                try:
+                    # Only go 2 levels deep to avoid too much scanning
+                    for root, dirs, files in os.walk(base_path):
+                        depth = root[len(base_path):].count(os.sep)
+                        if depth >= 2:
+                            dirs[:] = []  # Don't go deeper
+
+                        for file in files:
+                            file_lower = file.lower()
+
+                            # Look for files that might contain transaction data
+                            if any(keyword in file_lower for keyword in ['transaction', 'sale', 'receipt', 'invoice', 'order']):
+                                file_path = os.path.join(root, file)
+                                try:
+                                    if file_lower.endswith(('.db', '.sqlite', '.sqlite3')):
+                                        transactions.extend(self._extract_from_sqlite(file_path, since))
+                                    elif file_lower.endswith(('.csv', '.txt')):
+                                        transactions.extend(self._extract_from_csv(file_path, since))
+                                    elif file_lower.endswith('.json'):
+                                        transactions.extend(self._extract_from_json(file_path, since))
+                                except Exception as e:
+                                    self.logger.debug(f"Could not read {file_path}: {e}")
+
+                except Exception as e:
+                    self.logger.debug(f"Error scanning {base_path}: {e}")
+
+        return transactions
+
+    def _scan_for_pos_files(self, since: datetime) -> List[Dict[str, Any]]:
+        """Scan for common POS file patterns in likely locations"""
+        transactions = []
+
+        # Focus on more likely locations to avoid scanning entire drive
+        likely_paths = [
+            "C:/POS",
+            "C:/Retail",
+            "C:/Store",
+            "C:/Data",
+            os.path.expanduser("~/Documents"),
+            "C:/Program Files",
+            "C:/Program Files (x86)",
+        ]
+
+        for search_path in likely_paths:
+            if os.path.exists(search_path):
+                try:
+                    for root, dirs, files in os.walk(search_path):
+                        # Limit depth
+                        depth = root[len(search_path):].count(os.sep)
+                        if depth >= 3:
+                            dirs[:] = []
+
+                        for file in files:
+                            file_lower = file.lower()
+                            if any(keyword in file_lower for keyword in ['pos', 'transaction', 'sale', 'receipt', 'invoice']):
+                                file_path = os.path.join(root, file)
+                                try:
+                                    if file_lower.endswith(('.db', '.sqlite')):
+                                        transactions.extend(self._extract_from_sqlite(file_path, since))
+                                    elif file_lower.endswith(('.csv', '.txt')):
+                                        transactions.extend(self._extract_from_csv(file_path, since))
+                                except Exception as e:
+                                    self.logger.debug(f"Could not read {file_path}: {e}")
+                except Exception as e:
+                    self.logger.debug(f"Error scanning {search_path}: {e}")
+
+        return transactions
+
+    def _extract_from_sqlite(self, db_path: str, since: datetime) -> List[Dict[str, Any]]:
+        """Extract from SQLite database - reuse AroniumPOSAdapter logic"""
+        transactions = []
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            # Find tables that might contain transaction data
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            all_tables = [row[0] for row in cursor.fetchall()]
+
+            transaction_tables = [table for table in all_tables if any(keyword in table.lower() for keyword in ['transaction', 'sale', 'receipt', 'invoice', 'order', 'payment'])]
+
+            for table in transaction_tables[:3]:  # Limit to 3 tables
+                try:
+                    cursor.execute(f"PRAGMA table_info({table})")
+                    columns = [col[1] for col in cursor.fetchall()]
+
+                    # Look for date/timestamp columns
+                    date_columns = [col for col in columns if any(word in col.lower() for word in ['date', 'time', 'created', 'timestamp'])]
+
+                    if date_columns:
+                        date_col = date_columns[0]
+                        since_str = since.strftime('%Y-%m-%d %H:%M:%S')
+
+                        query = f"SELECT * FROM {table} WHERE {date_col} > ? ORDER BY {date_col} DESC LIMIT 50"
+                        cursor.execute(query, (since_str,))
+
+                        rows = cursor.fetchall()
+                        for row in rows:
+                            transaction = dict(zip(columns, row))
+                            transaction['source_table'] = table
+                            transaction['source_file'] = os.path.basename(db_path)
+                            transaction['pos_system'] = self.system_name
+                            transactions.append(transaction)
+
+                except Exception as e:
+                    self.logger.debug(f"Could not read table {table}: {e}")
+
+            conn.close()
+
+        except Exception as e:
+            self.logger.debug(f"Could not connect to {db_path}: {e}")
+
+        return transactions
+
+    def _extract_from_csv(self, file_path: str, since: datetime) -> List[Dict[str, Any]]:
+        """Extract from CSV file"""
+        transactions = []
+        try:
+            if pd is None:
+                # Fallback to manual CSV reading
+                import csv
+                with open(file_path, 'r') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        row['pos_system'] = self.system_name
+                        row['source_file'] = os.path.basename(file_path)
+                        transactions.append(row)
+                return transactions
+
+            df = pd.read_csv(file_path, nrows=1000)  # Limit rows for performance
+
+            if len(df) == 0:
+                return transactions
+
+            # Look for date columns
+            date_columns = [col for col in df.columns if any(word in col.lower() for word in ['date', 'time', 'created'])]
+
+            if date_columns:
+                try:
+                    df[date_columns[0]] = pd.to_datetime(df[date_columns[0]], errors='coerce')
+                    recent_df = df[df[date_columns[0]] > since]
+
+                    for _, row in recent_df.head(50).iterrows():  # Limit results
+                        transaction = row.to_dict()
+                        transaction['pos_system'] = self.system_name
+                        transaction['source_file'] = os.path.basename(file_path)
+                        transactions.append(transaction)
+                except:
+                    # If date parsing fails, just take recent rows
+                    for _, row in df.head(20).iterrows():
+                        transaction = row.to_dict()
+                        transaction['pos_system'] = self.system_name
+                        transaction['source_file'] = os.path.basename(file_path)
+                        transactions.append(transaction)
+
+        except Exception as e:
+            self.logger.debug(f"Could not read CSV {file_path}: {e}")
+        return transactions
+
+    def _extract_from_json(self, file_path: str, since: datetime) -> List[Dict[str, Any]]:
+        """Extract from JSON file"""
+        transactions = []
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+
+            if isinstance(data, list):
+                for item in data[:50]:  # Limit results
+                    if isinstance(item, dict):
+                        item['pos_system'] = self.system_name
+                        item['source_file'] = os.path.basename(file_path)
+                        transactions.append(item)
+            elif isinstance(data, dict):
+                data['pos_system'] = self.system_name
+                data['source_file'] = os.path.basename(file_path)
+                transactions.append(data)
+
+        except Exception as e:
+            self.logger.debug(f"Could not read JSON {file_path}: {e}")
+        return transactions
