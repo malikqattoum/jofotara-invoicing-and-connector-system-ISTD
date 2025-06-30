@@ -1,0 +1,30 @@
+[
+  {
+    "id": "TXN_001",
+    "timestamp": "2025-06-30T15:21:13.437383",
+    "type": "sale",
+    "customer": "David Lee",
+    "items": [
+      {
+        "name": "Monthly Subscription",
+        "price": 29.99
+      }
+    ],
+    "total": 29.99,
+    "status": "completed"
+  },
+  {
+    "id": "TXN_002",
+    "timestamp": "2025-06-30T15:21:13.437383",
+    "type": "refund",
+    "customer": "Emma Davis",
+    "items": [
+      {
+        "name": "Returned Item",
+        "price": -45.0
+      }
+    ],
+    "total": -45.0,
+    "status": "processed"
+  }
+]

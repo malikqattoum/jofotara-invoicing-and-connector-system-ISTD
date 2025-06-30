@@ -1,0 +1,34 @@
+[
+  {
+    "invoice_id": "INV001",
+    "date": "2025-06-30",
+    "customer": "Mike Johnson",
+    "vehicle": "2020 Toyota Camry",
+    "services": [
+      {
+        "service": "Oil Change",
+        "cost": 49.99
+      },
+      {
+        "service": "Tire Rotation",
+        "cost": 25.0
+      }
+    ],
+    "total": 74.99,
+    "payment_status": "paid"
+  },
+  {
+    "invoice_id": "INV002",
+    "date": "2025-06-30",
+    "customer": "Sarah Wilson",
+    "vehicle": "2018 Honda Civic",
+    "services": [
+      {
+        "service": "Brake Inspection",
+        "cost": 89.99
+      }
+    ],
+    "total": 89.99,
+    "payment_status": "pending"
+  }
+]

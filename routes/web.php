@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\VendorProfileController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\VendorDashboardController;
+use App\Http\Controllers\Admin\PosCustomerController;
 use Illuminate\Support\Facades\Auth;
 
 Auth::routes();
@@ -64,10 +65,17 @@ Route::middleware('auth')->prefix('vendor')->name('vendor.')->group(function () 
     // These routes should also be moved to vendor.php if needed
 });
 
-Route::middleware(['auth', 'can:admin-panel'])->group(function () {
-    Route::get('/admin', function() { return view('admin.panel'); })->name('admin.panel');
-    Route::get('/admin/vendors', [AdminController::class, 'index'])->name('admin.vendors');
-    Route::post('/admin/vendors/{id}/toggle', [AdminController::class, 'toggleVendor'])->name('admin.toggleVendor');
+Route::middleware(['auth', 'can:admin-panel'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', function() { return view('admin.panel'); })->name('panel');
+    Route::get('/vendors', [AdminController::class, 'index'])->name('vendors');
+    Route::post('/vendors/{id}/toggle', [AdminController::class, 'toggleVendor'])->name('toggleVendor');
+
+    // POS Customer Management Routes
+    Route::resource('pos-customers', PosCustomerController::class);
+    Route::get('pos-customers/{posCustomer}/transactions', [PosCustomerController::class, 'transactions'])->name('pos-customers.transactions');
+    Route::post('pos-customers/{posCustomer}/process-transactions', [PosCustomerController::class, 'processTransactions'])->name('pos-customers.process-transactions');
+    Route::post('pos-customers/{posCustomer}/generate-package', [PosCustomerController::class, 'generatePackage'])->name('pos-customers.generate-package');
+    Route::post('pos-customers/{posCustomer}/regenerate-api-key', [PosCustomerController::class, 'regenerateApiKey'])->name('pos-customers.regenerate-api-key');
 });
 
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');

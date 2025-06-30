@@ -1,0 +1,66 @@
+[
+  {
+    "transaction_id": "RET001",
+    "timestamp": "2025-06-30T09:00:00Z",
+    "customer_id": "CUST123",
+    "items": [
+      {
+        "sku": "SHIRT001",
+        "name": "Cotton T-Shirt",
+        "quantity": 2,
+        "unit_price": 19.99,
+        "total": 39.98
+      }
+    ],
+    "subtotal": 39.98,
+    "tax": 3.20,
+    "total": 43.18,
+    "payment_method": "Credit Card",
+    "cashier_id": "EMP001"
+  },
+  {
+    "transaction_id": "RET002",
+    "timestamp": "2025-06-30T10:30:00Z",
+    "customer_id": "CUST124",
+    "items": [
+      {
+        "sku": "JEANS001",
+        "name": "Blue Jeans",
+        "quantity": 1,
+        "unit_price": 49.99,
+        "total": 49.99
+      },
+      {
+        "sku": "BELT001",
+        "name": "Leather Belt",
+        "quantity": 1,
+        "unit_price": 24.99,
+        "total": 24.99
+      }
+    ],
+    "subtotal": 74.98,
+    "tax": 6.00,
+    "total": 80.98,
+    "payment_method": "Cash",
+    "cashier_id": "EMP002"
+  },
+  {
+    "transaction_id": "RET003",
+    "timestamp": "2025-06-30T11:45:00Z",
+    "customer_id": "CUST125",
+    "items": [
+      {
+        "sku": "DRESS001",
+        "name": "Summer Dress",
+        "quantity": 1,
+        "unit_price": 89.99,
+        "total": 89.99
+      }
+    ],
+    "subtotal": 89.99,
+    "tax": 7.20,
+    "total": 97.19,
+    "payment_method": "Debit Card",
+    "cashier_id": "EMP001"
+  }
+]

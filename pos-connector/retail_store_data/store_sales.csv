@@ -1,0 +1,4 @@
+Transaction_ID,Date,Product_SKU,Product_Name,Quantity,Unit_Price,Total,Payment_Method,Cashier
+TXN001,2025-06-30,SKU001,Blue T-Shirt,2,19.99,39.98,Credit Card,John
+TXN002,2025-06-30,SKU002,Jeans,1,49.99,49.99,Cash,Mary
+TXN003,2025-06-30,SKU003,Sneakers,1,79.99,79.99,Debit Card,John

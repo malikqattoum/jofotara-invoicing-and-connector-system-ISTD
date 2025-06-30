@@ -1,0 +1,4 @@
+Appointment_ID,Client_Name,Service,Stylist,Date,Time,Price,Payment_Method,Status
+APP001,Emma Johnson,Haircut & Style,Lisa,2025-06-30,10:00,65.0,Credit Card,completed
+APP002,David Brown,Beard Trim,Mike,2025-06-30,11:30,25.0,Cash,completed
+APP003,Anna Davis,Hair Color,Lisa,2025-06-30,14:00,120.0,Debit Card,in_progress

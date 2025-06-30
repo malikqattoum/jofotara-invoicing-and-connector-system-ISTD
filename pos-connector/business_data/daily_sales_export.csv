@@ -1,0 +1,3 @@
+Date,Time,Customer,Product,Amount,Payment
+2025-06-30,15:21:13,Alice Johnson,Consulting Service,150.00,Invoice
+2025-06-30,15:21:13,Charlie Brown,Software License,299.99,Wire Transfer

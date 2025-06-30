@@ -6,6 +6,16 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\JoFotaraController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\CertificateController;
+use App\Http\Controllers\Api\PosConnectorController;
+
+// POS Connector API Routes (public - authenticated via API key)
+Route::prefix('pos-connector')->group(function () {
+    Route::post('/transactions', [PosConnectorController::class, 'receiveTransactions']);
+    Route::post('/heartbeat', [PosConnectorController::class, 'heartbeat']);
+    Route::get('/config', [PosConnectorController::class, 'getConfig']);
+    Route::get('/test', [PosConnectorController::class, 'testConnection']);
+    Route::get('/stats', [PosConnectorController::class, 'getStats']);
+});
 
 Route::post('/invoices/{id}/submit', [JoFotaraController::class, 'submitToTaxSystem']);
 
