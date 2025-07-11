@@ -30,6 +30,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from .pos_adapters import *
 from .data_extractors import *
 from .laravel_api import LaravelAPI
+from .pos_api_client import PosApiClient
+from .folder_detector import InvoiceFolderDetector
 
 class EnhancedPOSConnector:
     """
@@ -49,11 +51,21 @@ class EnhancedPOSConnector:
         self.failed_syncs = {}
 
         # Initialize API client
-        self.api_client = LaravelAPI(
-            base_url=config.get('base_url'),
-            email=config.get('email'),
-            password=config.get('password')
-        )
+        # Use POS API client if API key is provided, otherwise use Laravel API
+        if config.get('api_key'):
+            self.api_client = PosApiClient(
+                base_url=config.get('base_url'),
+                api_key=config.get('api_key'),
+                customer_id=config.get('customer_id')
+            )
+            self.use_pos_api = True
+        else:
+            self.api_client = LaravelAPI(
+                base_url=config.get('base_url'),
+                email=config.get('email'),
+                password=config.get('password')
+            )
+            self.use_pos_api = False
 
         # Initialize database for local caching
         self.db_path = Path(__file__).parent.parent / 'data' / 'pos_cache.db'
@@ -62,6 +74,10 @@ class EnhancedPOSConnector:
 
         # Load POS adapters
         self._load_pos_adapters()
+
+        # Initialize folder detector
+        self.folder_detector = InvoiceFolderDetector(self.logger)
+        self.monitored_folders = []
 
         self.logger.info("Enhanced POS Connector initialized")
 
@@ -826,8 +842,11 @@ class EnhancedPOSConnector:
         # Discover POS systems
         self.pos_systems = await self.discover_pos_systems()
 
-        if not self.pos_systems:
-            self.logger.warning("No POS systems discovered")
+        # Also discover and monitor invoice folders
+        await self._discover_and_monitor_folders()
+
+        if not self.pos_systems and not self.monitored_folders:
+            self.logger.warning("No POS systems or invoice folders discovered")
             return
 
         # Start monitoring threads for each system
@@ -923,25 +942,40 @@ class EnhancedPOSConnector:
                 system = data['system']
                 transaction = data['transaction']
 
-                # Convert to Laravel format
-                invoice_data = self._convert_to_laravel_format(system, transaction)
+                if self.use_pos_api:
+                    # Convert to POS transaction format
+                    transaction_data = self._convert_to_pos_format(system, transaction)
 
-                if invoice_data:
-                    # Send to Laravel API
-                    result = self.api_client.create_invoice(invoice_data)
+                    if transaction_data:
+                        # Send to POS Connector API
+                        result = self.api_client.send_transactions([transaction_data])
 
-                    if result:
-                        self.logger.info(f"Successfully created invoice {result.get('id')} from {system.get('name')}")
+                        if result:
+                            self.logger.info(f"Successfully sent transaction from {system.get('name')}")
+                            self._cache_transaction(system, transaction, 'success')
+                        else:
+                            self.logger.error(f"Failed to send transaction from {system.get('name')}")
+                            self._cache_transaction(system, transaction, 'failed')
+                else:
+                    # Convert to Laravel format (legacy)
+                    invoice_data = self._convert_to_laravel_format(system, transaction)
 
-                        # Cache the transaction
-                        self._cache_transaction(system, transaction, 'success')
+                    if invoice_data:
+                        # Send to Laravel API
+                        result = self.api_client.create_invoice(invoice_data)
 
-                        # Submit to JoFotara if configured
-                        if self.config.get('auto_submit_jofotara', False):
-                            self.api_client.submit_invoice(result['id'])
-                    else:
-                        self.logger.error(f"Failed to create invoice from {system.get('name')}")
-                        self._cache_transaction(system, transaction, 'failed')
+                        if result:
+                            self.logger.info(f"Successfully created invoice {result.get('id')} from {system.get('name')}")
+
+                            # Cache the transaction
+                            self._cache_transaction(system, transaction, 'success')
+
+                            # Submit to JoFotara if configured
+                            if self.config.get('auto_submit_jofotara', False):
+                                self.api_client.submit_invoice(result['id'])
+                        else:
+                            self.logger.error(f"Failed to create invoice from {system.get('name')}")
+                            self._cache_transaction(system, transaction, 'failed')
 
                 self.data_queue.task_done()
 
@@ -980,6 +1014,40 @@ class EnhancedPOSConnector:
 
         except Exception as e:
             self.logger.error(f"Error converting transaction to Laravel format: {e}")
+            return None
+
+    def _convert_to_pos_format(self, system: Dict[str, Any], transaction: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Convert POS transaction to POS Connector API format"""
+        try:
+            # Generate a unique transaction ID if not present
+            transaction_id = transaction.get('transaction_id') or transaction.get('id') or f"{system.get('name', 'unknown')}_{int(time.time())}"
+
+            # Convert to POS Connector format
+            pos_transaction = {
+                'transaction_id': transaction_id,
+                'pos_system': system.get('name', 'Unknown POS'),
+                'source_file': transaction.get('source_file'),
+                'transaction_date': transaction.get('date', datetime.now().isoformat()),
+                'customer_name': transaction.get('customer_name', 'Walk-in Customer'),
+                'customer_email': transaction.get('customer_email'),
+                'customer_phone': transaction.get('customer_phone'),
+                'items': transaction.get('items', []),
+                'subtotal': transaction.get('subtotal', 0),
+                'tax_amount': transaction.get('tax_amount', 0),
+                'total_amount': transaction.get('total_amount', 0),
+                'tip_amount': transaction.get('tip_amount'),
+                'payment_method': transaction.get('payment_method'),
+                'payment_reference': transaction.get('payment_reference'),
+                'payment_status': transaction.get('payment_status', 'completed'),
+                'location': transaction.get('location'),
+                'employee': transaction.get('employee'),
+                'notes': transaction.get('notes', f"Imported from {system.get('name')}")
+            }
+
+            return pos_transaction
+
+        except Exception as e:
+            self.logger.error(f"Error converting transaction to POS format: {e}")
             return None
 
     def _cache_transaction(self, system: Dict[str, Any], transaction: Dict[str, Any], status: str):
@@ -1041,9 +1109,12 @@ class EnhancedPOSConnector:
             self.logger.error(f"Error updating sync time: {e}")
 
     def stop_monitoring(self):
-        """Stop monitoring all POS systems"""
+        """Stop monitoring all POS systems and folders"""
         self.logger.info("Stopping POS monitoring...")
         self.running = False
+
+        # Stop folder monitoring
+        self.stop_folder_monitoring()
 
         # Wait for threads to finish
         for thread in self.sync_threads:
@@ -1057,8 +1128,178 @@ class EnhancedPOSConnector:
         return {
             'running': self.running,
             'discovered_systems': len(self.pos_systems),
+            'monitored_folders': len(self.monitored_folders),
             'active_monitors': len([t for t in self.sync_threads if t.is_alive()]),
             'queue_size': self.data_queue.qsize(),
             'last_sync_times': self.last_sync_times,
             'failed_syncs': self.failed_syncs
         }
+
+    async def _discover_and_monitor_folders(self):
+        """Discover and start monitoring invoice folders"""
+        self.logger.info("Discovering invoice folders...")
+
+        # Get detected folders
+        detected_folders = self.folder_detector.detect_invoice_folders()
+
+        # Filter folders with recent activity (score > 10)
+        active_folders = [f for f in detected_folders if f['score'] > 10.0]
+
+        if active_folders:
+            self.logger.info(f"Found {len(active_folders)} active invoice folders")
+
+            # Start monitoring top folders
+            for folder_info in active_folders[:5]:  # Monitor top 5 folders
+                self._start_folder_monitoring(folder_info)
+                self.monitored_folders.append(folder_info)
+        else:
+            self.logger.info("No active invoice folders detected")
+
+    def _start_folder_monitoring(self, folder_info: Dict[str, Any]):
+        """Start monitoring a specific folder for invoice files"""
+        from .watcher import InvoiceHandler
+        from watchdog.observers import Observer
+
+        try:
+            folder_path = folder_info['path']
+            pos_system = folder_info.get('pos_system', 'unknown')
+            self.logger.info(f"Starting folder monitoring: {folder_path} (POS: {pos_system})")
+
+            # Create enhanced invoice handler with folder info
+            handler = EnhancedInvoiceHandler(self.api_client, folder_info, self.logger)
+
+            # Create observer
+            observer = Observer()
+            observer.schedule(handler, folder_path, recursive=False)
+            observer.start()
+
+            # Store observer reference for cleanup
+            folder_info['observer'] = observer
+
+            self.logger.info(f"✅ Folder monitoring started: {folder_path}")
+
+        except Exception as e:
+            self.logger.error(f"Failed to start folder monitoring for {folder_path}: {e}")
+
+    def stop_folder_monitoring(self):
+        """Stop all folder monitoring"""
+        for folder_info in self.monitored_folders:
+            observer = folder_info.get('observer')
+            if observer:
+                try:
+                    observer.stop()
+                    observer.join(timeout=5)
+                    self.logger.info(f"Stopped monitoring: {folder_info['path']}")
+                except Exception as e:
+                    self.logger.error(f"Error stopping folder monitor: {e}")
+
+
+class EnhancedInvoiceHandler:
+    """Enhanced invoice handler that shows detailed processing information"""
+
+    def __init__(self, api_client, folder_info: Dict[str, Any], logger):
+        self.api_client = api_client
+        self.folder_info = folder_info
+        self.logger = logger
+        self.processed_files = set()
+
+        # Import PDF parser if needed
+        try:
+            from .pdf_parser import PDFInvoiceParser
+            self.pdf_parser = PDFInvoiceParser()
+        except ImportError:
+            self.pdf_parser = None
+
+        # Import data mapping
+        try:
+            from .pos_data_mapping import map_pos_to_laravel
+            self.map_pos_to_laravel = map_pos_to_laravel
+        except ImportError:
+            self.map_pos_to_laravel = None
+
+    def on_created(self, event):
+        """Handle new file creation events"""
+        if event.is_directory:
+            return
+
+        # Support both JSON and PDF files
+        if not (event.src_path.endswith('.json') or event.src_path.endswith('.pdf')):
+            return
+
+        # Avoid processing the same file multiple times
+        if event.src_path in self.processed_files:
+            return
+
+        try:
+            filename = os.path.basename(event.src_path)
+            folder_path = self.folder_info['path']
+            pos_system = self.folder_info.get('pos_system', 'unknown')
+
+            self.logger.info(f"📄 New invoice detected: {filename}")
+            self.logger.info(f"📁 Source folder: {folder_path} (POS: {pos_system})")
+
+            # Wait a moment to ensure the file is completely written
+            import time
+            time.sleep(0.5)
+
+            # Process based on file type
+            if event.src_path.endswith('.pdf'):
+                # Parse PDF invoice
+                self.logger.info(f"🔍 Processing PDF invoice: {filename}")
+                if self.pdf_parser:
+                    pos_invoice = self.pdf_parser.parse_pdf_invoice(event.src_path, pos_system)
+                    if not pos_invoice:
+                        self.logger.error(f"❌ Failed to parse PDF {filename}")
+                        return
+                else:
+                    self.logger.error(f"❌ PDF parser not available for {filename}")
+                    return
+            else:
+                # Load JSON invoice data
+                import json
+                with open(event.src_path, 'r', encoding='utf-8') as f:
+                    pos_invoice = json.load(f)
+
+            # Map POS data to Laravel format
+            if self.map_pos_to_laravel:
+                invoice_data = self.map_pos_to_laravel(pos_invoice)
+            else:
+                self.logger.error(f"❌ Data mapping not available for {filename}")
+                return
+
+            # Create invoice in Laravel system
+            self.logger.info(f"🔄 Creating invoice in Laravel system from {filename}...")
+            invoice = self.api_client.create_invoice(invoice_data)
+            if not invoice or 'id' not in invoice:
+                self.logger.error(f"❌ Failed to create invoice from {filename}")
+                return
+
+            # Submit invoice to JoFotara
+            self.logger.info(f"📤 Submitting invoice {invoice['id']} to JoFotara from {filename}...")
+            result = self.api_client.submit_invoice(invoice['id'])
+            if not result:
+                self.logger.warning(f"⚠️  Failed to submit invoice {invoice['id']} to JoFotara from file: {filename}")
+            else:
+                self.logger.info(f"✅ Successfully sent transaction from file: {filename}")
+
+            # Download invoice PDF
+            output_dir = os.path.join(os.path.dirname(event.src_path), "Processed")
+            os.makedirs(output_dir, exist_ok=True)
+            pdf_path = os.path.join(output_dir, f"invoice_{invoice['id']}.pdf")
+
+            self.logger.info(f"📥 Downloading invoice PDF to {pdf_path}...")
+            if self.api_client.download_invoice_pdf(invoice['id'], pdf_path):
+                self.logger.info(f"📄 Successfully processed invoice {invoice['id']} from file: {filename}")
+                self.logger.info(f"📁 Processed file moved to: {output_dir}")
+            else:
+                self.logger.warning(f"⚠️  Failed to download PDF for invoice {invoice['id']} from file: {filename}")
+
+            # Mark as processed
+            self.processed_files.add(event.src_path)
+
+        except json.JSONDecodeError:
+            self.logger.error(f"❌ Invalid JSON format in {filename}")
+        except Exception as e:
+            self.logger.error(f"❌ Error processing invoice {filename}: {str(e)}")
+            import traceback
+            self.logger.debug(traceback.format_exc())

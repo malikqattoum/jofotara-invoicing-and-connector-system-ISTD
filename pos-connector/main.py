@@ -28,6 +28,7 @@ from pos_connector.database_scanner import DatabaseScanner
 from pos_connector.network_scanner import NetworkScanner
 from pos_connector.registry_scanner import RegistryScanner
 from pos_connector.service_manager import WindowsServiceManager
+from pos_connector.folder_detector import InvoiceFolderDetector
 
 def setup_wizard():
     """Enhanced setup wizard for the POS connector"""
@@ -87,10 +88,53 @@ def setup_wizard():
     config['detection_mode'] = detection_mode
 
     if detection_mode == "2":
-        # File monitoring configuration
-        default_folder = config.get('invoice_folder', INVOICE_FOLDER)
-        invoice_folder = input(f"POS Invoice Export Folder [{default_folder}]: ").strip() or default_folder
-        config['invoice_folder'] = invoice_folder
+        # File monitoring configuration with user choice
+        print("\n--- Invoice Folder Configuration ---")
+        print("Choose how to configure the invoice folder:")
+        print("1. Automatic detection (recommended)")
+        print("2. Manual folder selection")
+
+        folder_choice = input("Choose option (1/2) [1]: ").strip() or "1"
+
+        if folder_choice == "1":
+            # Automatic detection
+            print("\n🔍 Scanning for POS invoice folders...")
+            print("This may take a few moments...")
+
+            folder_detector = InvoiceFolderDetector()
+            auto_detected = folder_detector.suggest_folders_interactive()
+
+            if auto_detected:
+                config['invoice_folder'] = auto_detected
+                config['folder_detection_mode'] = 'automatic'
+                print(f"✅ Using automatically detected folder: {auto_detected}")
+            else:
+                print("❌ No suitable folders detected automatically.")
+                print("Falling back to manual selection...")
+                default_folder = config.get('invoice_folder', INVOICE_FOLDER)
+                invoice_folder = input(f"POS Invoice Export Folder [{default_folder}]: ").strip() or default_folder
+                config['invoice_folder'] = invoice_folder
+                config['folder_detection_mode'] = 'manual'
+        else:
+            # Manual selection
+            print("\n📁 Manual folder selection:")
+            default_folder = config.get('invoice_folder', INVOICE_FOLDER)
+            invoice_folder = input(f"POS Invoice Export Folder [{default_folder}]: ").strip() or default_folder
+            config['invoice_folder'] = invoice_folder
+            config['folder_detection_mode'] = 'manual'
+
+            # Validate the folder exists
+            if not os.path.exists(invoice_folder):
+                create_folder = input(f"Folder doesn't exist. Create it? (y/n) [y]: ").strip().lower()
+                if create_folder in ['', 'y', 'yes']:
+                    try:
+                        os.makedirs(invoice_folder, exist_ok=True)
+                        print(f"✅ Created folder: {invoice_folder}")
+                    except Exception as e:
+                        print(f"❌ Failed to create folder: {e}")
+                        print("Please create the folder manually or choose a different path.")
+                else:
+                    print("⚠️  Warning: Folder doesn't exist. Please create it before starting the connector.")
 
     # Logging level
     log_level = input("Log level (DEBUG/INFO/WARNING/ERROR) [INFO]: ").strip().upper() or "INFO"
@@ -170,7 +214,8 @@ async def main():
                     # Display status every 60 seconds
                     if int(time.time()) % 60 == 0:
                         status = connector.get_status()
-                        print(f"📈 Status: {status['discovered_systems']} systems, "
+                        print(f"📈 Status: {status['discovered_systems']} POS systems, "
+                              f"{status.get('monitored_folders', 0)} monitored folders, "
                               f"{status['active_monitors']} active monitors, "
                               f"{status['queue_size']} queued items")
             except KeyboardInterrupt:
@@ -193,10 +238,17 @@ async def main():
                 sys.exit(1)
 
             print("✅ Authentication successful!")
-            print(f"📂 Watching folder: {config.get('invoice_folder', INVOICE_FOLDER)}")
 
-            # Start the legacy file watcher
-            start_watcher(api, config.get('invoice_folder', INVOICE_FOLDER))
+            folder_path = config.get('invoice_folder', INVOICE_FOLDER)
+            folder_mode = config.get('folder_detection_mode', 'manual')
+
+            print(f"📂 Watching folder: {folder_path}")
+            print(f"🔍 Folder detection mode: {folder_mode}")
+            print("📄 Monitoring for new invoice files (PDF, JSON)...")
+            print("✅ Ready to process transactions - filenames will be shown when processed")
+
+            # Start the file watcher
+            start_watcher(api, folder_path)
 
         else:
             print("🔧 Manual configuration mode not implemented yet.")

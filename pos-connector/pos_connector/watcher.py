@@ -5,6 +5,7 @@ from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from .laravel_api import LaravelAPI
+from .pdf_parser import PDFInvoiceParser
 # You should provide a mapping function for your POS data:
 from .pos_data_mapping import map_pos_to_laravel
 
@@ -14,55 +15,73 @@ class InvoiceHandler(FileSystemEventHandler):
     def __init__(self, api):
         self.api = api
         self.processed_files = set()
+        self.pdf_parser = PDFInvoiceParser()
 
     def on_created(self, event):
-        if event.is_directory or not event.src_path.endswith('.json'):
+        if event.is_directory:
             return
-            
+
+        # Support both JSON and PDF files
+        if not (event.src_path.endswith('.json') or event.src_path.endswith('.pdf')):
+            return
+
         # Avoid processing the same file multiple times
         if event.src_path in self.processed_files:
             return
-            
+
         try:
             print(f"New invoice detected: {os.path.basename(event.src_path)}")
-            
+
             # Wait a moment to ensure the file is completely written
             time.sleep(0.5)
-            
-            # Load the POS invoice data
-            with open(event.src_path, 'r', encoding='utf-8') as f:
-                pos_invoice = json.load(f)
-                
+
+            # Process based on file type
+            if event.src_path.endswith('.pdf'):
+                # Parse PDF invoice
+                print(f"Processing PDF invoice: {os.path.basename(event.src_path)}")
+                pos_invoice = self.pdf_parser.parse_pdf_invoice(event.src_path, "Aronium POS")
+                if not pos_invoice:
+                    print(f"Error: Failed to parse PDF {event.src_path}")
+                    return
+            else:
+                # Load JSON invoice data
+                with open(event.src_path, 'r', encoding='utf-8') as f:
+                    pos_invoice = json.load(f)
+
             # Map POS data to Laravel format
             invoice_data = map_pos_to_laravel(pos_invoice)
-            
+
             # Create invoice in Laravel system
             print("Creating invoice in Laravel system...")
             invoice = self.api.create_invoice(invoice_data)
             if not invoice or 'id' not in invoice:
                 print(f"Error: Failed to create invoice from {event.src_path}")
                 return
-                
+
             # Submit invoice to JoFotara
+            filename = os.path.basename(event.src_path)
             print(f"Submitting invoice {invoice['id']} to JoFotara...")
             result = self.api.submit_invoice(invoice['id'])
             if not result:
-                print(f"Warning: Failed to submit invoice {invoice['id']} to JoFotara")
-            
+                print(f"Warning: Failed to submit invoice {invoice['id']} to JoFotara from file: {filename}")
+            else:
+                print(f"✅ Successfully sent transaction from file: {filename}")
+
             # Download invoice PDF
             output_dir = os.path.join(os.path.dirname(event.src_path), "Processed")
             os.makedirs(output_dir, exist_ok=True)
             pdf_path = os.path.join(output_dir, f"invoice_{invoice['id']}.pdf")
-            
+
             print(f"Downloading invoice PDF to {pdf_path}...")
             if self.api.download_invoice_pdf(invoice['id'], pdf_path):
-                print(f"Successfully processed invoice: {invoice['id']}")
+                print(f"📄 Successfully processed invoice {invoice['id']} from file: {filename}")
+                print(f"📁 Processed file moved to: {output_dir}")
             else:
-                print(f"Warning: Failed to download PDF for invoice {invoice['id']}")
-                
+                print(f"Warning: Failed to download PDF for invoice {invoice['id']} from file: {filename}")
+
             # Mark as processed
             self.processed_files.add(event.src_path)
-            
+
         except json.JSONDecodeError:
             print(f"Error: Invalid JSON format in {event.src_path}")
         except Exception as e:
@@ -80,7 +99,7 @@ def start_watcher(api, folder=INVOICE_FOLDER):
             print(f"Error creating invoice folder {folder}: {e}")
             print("Using current directory instead.")
             folder = os.path.dirname(os.path.abspath(__file__))
-    
+
     # Create a 'Processed' subfolder
     processed_folder = os.path.join(folder, "Processed")
     if not os.path.exists(processed_folder):
@@ -89,21 +108,21 @@ def start_watcher(api, folder=INVOICE_FOLDER):
             print(f"Created processed invoices folder: {processed_folder}")
         except Exception as e:
             print(f"Error creating processed folder: {e}")
-    
+
     # Start the file watcher
     event_handler = InvoiceHandler(api)
     observer = Observer()
     observer.schedule(event_handler, folder, recursive=False)
     observer.start()
     print(f"Watching {folder} for new invoices...")
-    
+
     # Process any existing files in the folder
     for file in os.listdir(folder):
-        if file.endswith('.json'):
+        if file.endswith('.json') or file.endswith('.pdf'):
             file_path = os.path.join(folder, file)
             print(f"Found existing invoice file: {file}")
             event_handler.on_created(type('obj', (object,), {'is_directory': False, 'src_path': file_path}))
-    
+
     try:
         while True:
             time.sleep(1)

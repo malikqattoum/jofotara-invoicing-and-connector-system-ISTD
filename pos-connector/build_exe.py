@@ -127,7 +127,6 @@ def build_executable():
     cmd = [
         sys.executable, '-m', 'PyInstaller',
         '--clean',
-        '--onefile',
         'JoFotara_POS_Connector.spec'
     ]
 
@@ -196,7 +195,7 @@ cscript /nologo "%TEMP%\\CreateStartMenu.vbs"
 del "%TEMP%\\CreateStartMenu.vbs"
 
 echo.
-echo ✅ Installation completed successfully!
+echo [SUCCESS] Installation completed successfully!
 echo.
 echo The JoFotara POS Connector has been installed to:
 echo %INSTALL_DIR%
@@ -254,4 +253,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-'''

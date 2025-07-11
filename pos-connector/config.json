@@ -2,11 +2,14 @@
     "base_url": "http://127.0.0.1:8000",
     "email": "malikqattom@gmail.com",
     "vendor_id": 2,
-    "token": "2|P56YB6jvP17ZTDhyK23MfBvxdvZZrc4Zq5riRMuP66b9444e",
-    "token_expiry": "2025-07-01T13:18:10.147906",
-    "quick_discovery": false,
-    "sync_interval": 60,
+    "token": "4|PoSgD3bhH1SD5C4LnF6fn4aj0hmj30ESHXS4Y9HZ095b7af3",
+    "token_expiry": "2025-07-04T18:56:00.320966",
+    "api_key": "demo_pizza_api_key_123",
+    "customer_id": "DEMO_001",
+    "sync_interval": 30,
     "auto_submit_jofotara": false,
     "detection_mode": "1",
+    "invoice_folder": "C:\\Aronium\\Invoices",
+    "auto_detect_folders": true,
     "log_level": "INFO"
 }
