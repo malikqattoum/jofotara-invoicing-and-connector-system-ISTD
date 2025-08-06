@@ -55,7 +55,26 @@ class InvoiceController extends Controller
             'items.*.price' => 'required|numeric|min:0',
         ]);
 
+        // Get authenticated user
+        $user = $request->user();
+
+        // Add required fields with proper user association
         $validated['uuid'] = $validated['uuid'] ?? (string) \Illuminate\Support\Str::uuid();
+        $validated['vendor_id'] = $user ? $user->id : null;
+        $validated['organization_id'] = $user ? ($user->organization_id ?? 1) : 1;
+        $validated['invoice_date'] = $validated['invoice_date'] ?? now()->format('Y-m-d');
+
+        // Calculate totals from items
+        $totalAmount = 0;
+        $taxAmount = 0;
+        foreach ($validated['items'] as $item) {
+            $itemTotal = $item['quantity'] * $item['price'];
+            $totalAmount += $itemTotal;
+            // Assume 16% tax rate for Jordan (can be made configurable)
+            $taxAmount += $itemTotal * 0.16;
+        }
+        $validated['total_amount'] = $totalAmount + $taxAmount;
+        $validated['tax_amount'] = $taxAmount;
 
         // Generate hash of invoice data (for example, using SHA256 of JSON)
         $hash = hash('sha256', json_encode($validated));
@@ -63,16 +82,33 @@ class InvoiceController extends Controller
 
         // Generate QR code (for example, encode invoice number, uuid, and hash)
         $qrData = $validated['invoice_number'] . '|' . $validated['uuid'] . '|' . $hash;
-        $qrCode = new QrCode($qrData);
-        $writer = new PngWriter();
-        $qrImage = $writer->write($qrCode, null, null, ['size' => 200]);
-        $qrBase64 = base64_encode($qrImage->getString());
-        $validated['qr_code'] = $qrBase64;
+
+        try {
+            $qrCode = new QrCode($qrData);
+            $writer = new PngWriter();
+            $qrImage = $writer->write($qrCode, null, null, ['size' => 200]);
+            $qrBase64 = base64_encode($qrImage->getString());
+            $validated['qr_code'] = $qrBase64;
+        } catch (\Exception $e) {
+            // If QR code generation fails (e.g., GD extension not available), use a placeholder
+            Log::warning('QR code generation failed: ' . $e->getMessage());
+            $validated['qr_code'] = 'QR_CODE_GENERATION_FAILED';
+        }
 
         $invoice = Invoice::create($validated);
 
         foreach ($validated['items'] as $item) {
-            $invoice->items()->create($item);
+            // Map API fields to database fields and calculate missing values
+            $itemTotal = $item['quantity'] * $item['price'];
+            $itemTax = $itemTotal * 0.16; // 16% tax rate for Jordan
+
+            $invoice->items()->create([
+                'item_name' => $item['description'],
+                'quantity' => $item['quantity'],
+                'unit_price' => $item['price'],
+                'tax' => $itemTax,
+                'total' => $itemTotal + $itemTax
+            ]);
         }
 
         // Auditing: Log invoice creation

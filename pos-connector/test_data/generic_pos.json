@@ -1,0 +1,26 @@
+{
+  "invoice_number": "INV-GEN-001",
+  "customer": {
+    "name": "Generic Customer",
+    "email": "generic@example.com",
+    "phone": "+962791234567",
+    "address": "123 Main St, Amman, Jordan"
+  },
+  "invoice_date": "2025-01-11",
+  "currency": "JOD",
+  "items": [
+    {
+      "description": "Generic Product 1",
+      "quantity": 2,
+      "unit_price": 15.5,
+      "tax": 16
+    },
+    {
+      "description": "Generic Product 2",
+      "quantity": 1,
+      "unit_price": 30.0,
+      "tax": 16
+    }
+  ],
+  "notes": "Test invoice for generic POS system"
+}

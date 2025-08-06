@@ -1,0 +1,11 @@
+{
+  "customerName": "Minimal Customer",
+  "date": "2025-01-11",
+  "products": [
+    {
+      "name": "Simple Product",
+      "quantity": 1,
+      "price": 25.0
+    }
+  ]
+}

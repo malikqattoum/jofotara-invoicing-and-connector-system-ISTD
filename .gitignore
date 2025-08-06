@@ -23,3 +23,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /pos-connector/C
+/pos-connector/build
+/pos-connector/__pycache__
+/pos-connector/pos_connector/__pycache__

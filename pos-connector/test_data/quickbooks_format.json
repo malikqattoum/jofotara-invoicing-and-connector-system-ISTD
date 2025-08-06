@@ -1,0 +1,30 @@
+{
+  "TxnDate": "2025-01-11",
+  "CustomerRef": {
+    "name": "QuickBooks Customer"
+  },
+  "CustomerMemo": {
+    "value": "123456789"
+  },
+  "CurrencyRef": {
+    "value": "JOD"
+  },
+  "Line": [
+    {
+      "DetailType": "SalesItemLineDetail",
+      "Description": "QB Product 1",
+      "Amount": 31.0,
+      "SalesItemLineDetail": {
+        "Qty": 2
+      }
+    },
+    {
+      "DetailType": "SalesItemLineDetail",
+      "Description": "QB Product 2",
+      "Amount": 45.0,
+      "SalesItemLineDetail": {
+        "Qty": 1
+      }
+    }
+  ]
+}

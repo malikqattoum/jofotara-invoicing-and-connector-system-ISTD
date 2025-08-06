@@ -32,11 +32,25 @@ class PDFInvoiceParser:
             return None
 
         try:
+            # Check if file is actually a PDF
+            with open(pdf_path, 'rb') as f:
+                header = f.read(4)
+                if header != b'%PDF':
+                    # File has .pdf extension but is not a PDF, try reading as text
+                    self.logger.warning(f"File {pdf_path} has .pdf extension but is not a PDF file. Attempting text parsing.")
+                    return self._parse_text_file_as_pdf(pdf_path, pos_system)
+
             with pdfplumber.open(pdf_path) as pdf:
                 # Extract text from all pages
                 full_text = ""
                 for page in pdf.pages:
-                    full_text += page.extract_text() + "\n"
+                    page_text = page.extract_text()
+                    if page_text:
+                        full_text += page_text + "\n"
+
+                if not full_text.strip():
+                    self.logger.warning(f"No text content found in PDF {pdf_path}")
+                    return None
 
                 # Determine POS system type and parse accordingly
                 if "aronium" in pos_system.lower() or self._is_aronium_pdf(full_text):
@@ -47,6 +61,26 @@ class PDFInvoiceParser:
 
         except Exception as e:
             self.logger.error(f"Error parsing PDF {pdf_path}: {e}")
+            # Try as text file if PDF parsing fails
+            try:
+                return self._parse_text_file_as_pdf(pdf_path, pos_system)
+            except Exception as text_error:
+                self.logger.error(f"Also failed to parse as text file: {text_error}")
+                return None
+
+    def _parse_text_file_as_pdf(self, file_path: str, pos_system: str = "Unknown") -> Optional[Dict[str, Any]]:
+        """Parse a text file that has .pdf extension"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                text_content = f.read()
+
+            self.logger.info(f"Parsing text file as PDF: {file_path}")
+
+            # Use generic parsing for text files
+            return self._parse_generic_pdf(text_content, file_path, pos_system)
+
+        except Exception as e:
+            self.logger.error(f"Error parsing text file {file_path}: {e}")
             return None
 
     def _is_aronium_pdf(self, text: str) -> bool:

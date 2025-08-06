@@ -1,6 +1,81 @@
 # 🚀 JoFotara Universal POS Connector - Installation Guide
 
-## ⚡ Quick Start (5 Minutes)
+## 📦 Customer Installation (Recommended - No Python Required)
+
+### **Step 1: Download Files**
+You should have received these files:
+- `JoFotara_POS_Connector.exe` (Main program)
+- `install.bat` (Enhanced installer)
+- `uninstall.bat` (Uninstaller)
+- `troubleshoot.bat` (Troubleshooting tool)
+- `config.json` (Configuration file)
+
+### **Step 2: Install**
+1. **Right-click** on `install.bat`
+2. Select **"Run as administrator"**
+3. Installer handles running processes automatically
+4. Choose to start the connector when prompted
+
+### **Step 3: Done!**
+✅ Connector installed and running automatically!
+
+---
+
+## 🔧 Enhanced Installer Features
+
+### **Automatic Process Management:**
+- Detects if connector is already running
+- Safely stops processes before updating
+- **Fixes "file in use" errors automatically**
+
+### **Complete System Setup:**
+- Creates installation directory: `C:\JoFotara\POS_Connector`
+- Adds Windows Firewall exceptions
+- Creates desktop and Start Menu shortcuts
+- Sets up logging and data directories
+
+### **Troubleshooting Tools:**
+- `troubleshoot.bat` - System diagnostics
+- `uninstall.bat` - Clean removal
+- Enhanced error messages and solutions
+
+---
+
+## 🔧 Fixing "Process Cannot Access File" Error
+
+### **Problem:**
+```
+The process cannot access the file because it is being used by another process.
+ERROR: Failed to copy executable
+```
+
+### **Solution (Automatic):**
+The enhanced installer now handles this automatically:
+1. Detects running connector processes
+2. Safely stops them before installation
+3. Waits for complete termination
+4. Proceeds with installation
+
+### **Manual Solution (if needed):**
+1. **Stop the Connector:**
+   - Press `Ctrl+C` in the connector console window
+   - Or close the console window
+   - Or use Task Manager to end `JoFotara_POS_Connector.exe`
+
+2. **Wait a moment** for the process to fully terminate
+
+3. **Run installer again:**
+   - Right-click `install.bat`
+   - Select "Run as administrator"
+
+### **Prevention:**
+- Always use the enhanced `install.bat` (not the old version)
+- The new installer includes automatic process management
+- No manual intervention needed for updates
+
+---
+
+## ⚡ Developer Installation (Python Required)
 
 ### 1. Prerequisites Check
 ```bash

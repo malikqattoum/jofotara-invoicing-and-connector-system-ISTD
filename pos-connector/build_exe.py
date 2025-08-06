@@ -142,8 +142,43 @@ def build_executable():
         print(result.stderr)
         return False
 
+def copy_additional_files():
+    """Copy additional files to dist directory"""
+    import shutil
+
+    print("📁 Copying additional files...")
+
+    # Files to copy to dist directory
+    files_to_copy = [
+        ('config.json', 'Default configuration'),
+        ('requirements.txt', 'Python requirements'),
+        ('README.md', 'Documentation'),
+        ('test_api_connection.py', 'API connection test tool'),
+        ('check_laravel_backend.py', 'Laravel backend checker'),
+        ('test_folder_detection.py', 'Folder detection test tool'),
+    ]
+
+    for filename, description in files_to_copy:
+        if os.path.exists(filename):
+            try:
+                shutil.copy2(filename, f'dist/{filename}')
+                print(f"   ✅ {description}: {filename}")
+            except Exception as e:
+                print(f"   ⚠️  Failed to copy {filename}: {e}")
+
+    # The enhanced installer files are already in dist/ directory
+    installer_files = [
+        'dist/install.bat',
+        'dist/uninstall.bat',
+        'dist/troubleshoot.bat'
+    ]
+
+    for file_path in installer_files:
+        if os.path.exists(file_path):
+            print(f"   ✅ Installer tool: {os.path.basename(file_path)}")
+
 def create_installer_script():
-    """Create a simple installer script"""
+    """Create a simple installer script (legacy - enhanced version already exists)"""
 
     installer_content = '''@echo off
 echo ========================================
@@ -234,18 +269,22 @@ def main():
     # Build executable
     if build_executable():
         create_installer_script()
+        copy_additional_files()
 
         print("\n🎉 BUILD COMPLETE!")
         print("=" * 50)
         print("📦 Files created:")
         print("   - dist/JoFotara_POS_Connector.exe (main executable)")
-        print("   - dist/install.bat (installer script)")
+        print("   - dist/install.bat (enhanced installer)")
+        print("   - dist/uninstall.bat (uninstaller)")
+        print("   - dist/troubleshoot.bat (troubleshooting tool)")
+        print("   - dist/config.json (default configuration)")
         print("\n📋 Distribution Instructions:")
-        print("   1. Copy both files to customer machine")
-        print("   2. Run 'install.bat' as Administrator")
-        print("   3. Connector installs to C:\\JoFotara\\POS_Connector")
-        print("   4. Desktop & Start Menu shortcuts created")
-        print("   5. Runs automatically on Windows startup")
+        print("   1. Copy all files to customer machine")
+        print("   2. Right-click 'install.bat' → 'Run as Administrator'")
+        print("   3. Installer handles process termination automatically")
+        print("   4. Enhanced installer with firewall exceptions")
+        print("   5. Troubleshooting tools included")
         print("\n✅ Ready for customer deployment!")
         return True
 

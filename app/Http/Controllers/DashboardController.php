@@ -12,7 +12,14 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $query = Invoice::where('organization_id', $user->organization_id ?? null);
+
+        // Build query to get user's invoices - check both vendor_id and organization_id
+        $query = Invoice::where(function($q) use ($user) {
+            $q->where('vendor_id', $user->id);
+            if ($user->organization_id) {
+                $q->orWhere('organization_id', $user->organization_id);
+            }
+        });
 
         // Filtering by status
         if ($request->filled('status')) {
@@ -31,16 +38,31 @@ class DashboardController extends Controller
             });
         }
 
-        // Statistics for dashboard cards
+        // Statistics for dashboard cards - use same logic
+        $statsQuery = Invoice::where(function($q) use ($user) {
+            $q->where('vendor_id', $user->id);
+            if ($user->organization_id) {
+                $q->orWhere('organization_id', $user->organization_id);
+            }
+        });
+
         $stats = [
-            'total' => Invoice::where('organization_id', $user->organization_id ?? null)->count(),
-            'submitted' => Invoice::where('organization_id', $user->organization_id ?? null)->where('status', 'submitted')->count(),
-            'rejected' => Invoice::where('organization_id', $user->organization_id ?? null)->where('status', 'rejected')->count(),
-            'draft' => Invoice::where('organization_id', $user->organization_id ?? null)->where('status', 'draft')->count(),
+            'total' => $statsQuery->count(),
+            'submitted' => (clone $statsQuery)->where('status', 'submitted')->count(),
+            'rejected' => (clone $statsQuery)->where('status', 'rejected')->count(),
+            'draft' => (clone $statsQuery)->where('status', 'draft')->count(),
         ];
 
         $invoices = $query->orderBy('created_at', 'desc')->take(10)->get();
-        $integration = IntegrationSetting::where('organization_id', $user->organization_id ?? null)->first();
+
+        // Get integration settings for the user
+        $integration = IntegrationSetting::where(function($q) use ($user) {
+            $q->where('vendor_id', $user->id);
+            if ($user->organization_id) {
+                $q->orWhere('organization_id', $user->organization_id);
+            }
+        })->first();
+
         return view('dashboard', compact('user', 'invoices', 'integration', 'stats'));
     }
 }

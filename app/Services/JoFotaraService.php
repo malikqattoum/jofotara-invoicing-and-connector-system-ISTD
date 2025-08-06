@@ -21,10 +21,13 @@ class JoFotaraService
     public function __construct(IntegrationSetting $integration)
     {
         $this->integration = $integration;
-        $this->joFotaraSDK = new JoFotaraSDK(
-            $integration->client_id,
-            $integration->secret_key
-        );
+
+        // Parse configuration JSON to get credentials
+        $config = json_decode($integration->configuration, true) ?? [];
+        $clientId = $config['client_id'] ?? $config['api_key'] ?? 'test_client_id';
+        $secretKey = $config['secret_key'] ?? $config['api_key'] ?? 'test_secret_key';
+
+        $this->joFotaraSDK = new JoFotaraSDK($clientId, $secretKey);
     }
 
     /**
@@ -46,9 +49,9 @@ class JoFotaraService
 
             // Set seller information
             $this->joFotaraSDK->sellerInformation()
-                ->setName($invoice->organization_name)
-                ->setTin($invoice->tax_number);
-                
+                ->setName('JoFotara Invoicing System') // Default organization name
+                ->setTin('1234567890'); // Default tax number
+
             // Set income source sequence if available
             if ($this->integration->income_source_sequence) {
                 $this->joFotaraSDK->sellerInformation()
@@ -59,10 +62,10 @@ class JoFotaraService
             $this->joFotaraSDK->customerInformation()
                 ->setName($invoice->customer_name);
 
-            // Add customer ID if available
-            if ($invoice->customer_id && $invoice->customer_id_type) {
+            // Add customer tax number if available
+            if ($invoice->customer_tax_number) {
                 $this->joFotaraSDK->customerInformation()
-                    ->setId($invoice->customer_id, $invoice->customer_id_type);
+                    ->setId($invoice->customer_tax_number, 'tax_number');
             }
 
             // Add invoice items

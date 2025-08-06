@@ -69,6 +69,11 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class);
     }
 
+    public function vendor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'vendor_id');
+    }
+
     public function integration(): BelongsTo
     {
         return $this->belongsTo(IntegrationSetting::class, 'vendor_id', 'vendor_id');

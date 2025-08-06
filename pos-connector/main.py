@@ -30,6 +30,33 @@ from pos_connector.registry_scanner import RegistryScanner
 from pos_connector.service_manager import WindowsServiceManager
 from pos_connector.folder_detector import InvoiceFolderDetector
 
+def test_api_connectivity(config):
+    """Test basic API connectivity"""
+    import requests
+
+    base_url = config.get('base_url', 'http://127.0.0.1:8000')
+
+    try:
+        # Test basic connectivity
+        response = requests.get(base_url, timeout=5)
+        if response.status_code == 200:
+            print("✅ Server is reachable")
+            return True
+        else:
+            print(f"⚠️  Server returned status {response.status_code}")
+            return False
+
+    except requests.exceptions.ConnectionError:
+        print(f"❌ Cannot connect to {base_url}")
+        print("💡 Make sure the Laravel backend is running")
+        return False
+    except requests.exceptions.Timeout:
+        print(f"❌ Connection timeout to {base_url}")
+        return False
+    except Exception as e:
+        print(f"❌ Connection error: {e}")
+        return False
+
 def setup_wizard():
     """Enhanced setup wizard for the POS connector"""
     config_file = Path(__file__).parent / 'config.json'
@@ -179,6 +206,19 @@ async def main():
     print(f"Sync Interval: {config.get('sync_interval', 60)} seconds")
     print("="*60)
 
+    # Test API connectivity before starting
+    print("🔗 Testing API connectivity...")
+    if not test_api_connectivity(config):
+        print("❌ API connectivity test failed!")
+        print("💡 Run 'python test_api_connection.py' for detailed diagnostics")
+
+        choice = input("\nContinue anyway? (y/n) [n]: ").strip().lower()
+        if choice != 'y':
+            print("Exiting. Please resolve API connectivity issues first.")
+            sys.exit(1)
+        else:
+            print("⚠️  Continuing with potential connectivity issues...")
+
     try:
         detection_mode = config.get('detection_mode', '1')
 
@@ -235,6 +275,12 @@ async def main():
 
             if not api.authenticate():
                 print("❌ Authentication failed. Please check your credentials.")
+                print("\n💡 Troubleshooting steps:")
+                print("   1. Make sure Laravel backend is running: php artisan serve")
+                print("   2. Check API connection: python test_api_connection.py")
+                print("   3. Verify backend status: python check_laravel_backend.py")
+                print("   4. Review authentication guide: AUTHENTICATION_ERROR_GUIDE.md")
+                print(f"   5. Verify API URL is correct: {config['base_url']}")
                 sys.exit(1)
 
             print("✅ Authentication successful!")

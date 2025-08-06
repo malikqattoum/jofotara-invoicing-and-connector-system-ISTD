@@ -17,11 +17,6 @@ Route::prefix('pos-connector')->group(function () {
     Route::get('/stats', [PosConnectorController::class, 'getStats']);
 });
 
-Route::post('/invoices/{id}/submit', [JoFotaraController::class, 'submitToTaxSystem']);
-
-Route::post('/invoices', [InvoiceController::class, 'store']);
-Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
-Route::get('/invoices/status/{id}', [InvoiceController::class, 'status']);
 Route::post('/webhooks/invoice-status', [JoFotaraController::class, 'handleWebhook']);
 
 Route::post('/vendors/register', [VendorController::class, 'register']);
@@ -41,6 +36,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/vendors/profile', [VendorController::class, 'profile']);
     Route::put('/vendors/profile', [VendorController::class, 'updateProfile']);
     Route::post('/certificates/upload', [CertificateController::class, 'upload']);
+
+    // Invoice routes (authenticated)
+    Route::post('/invoices', [InvoiceController::class, 'store']);
+    Route::get('/invoices/{id}', [InvoiceController::class, 'show']);
+    Route::get('/invoices/status/{id}', [InvoiceController::class, 'status']);
+    Route::post('/invoices/{id}/submit', [JoFotaraController::class, 'submitToTaxSystem']);
     Route::get('/invoices/{id}/pdf', [InvoiceController::class, 'downloadPdf']);
     Route::get('/invoices/{id}/xml', [InvoiceController::class, 'downloadXml']);
 

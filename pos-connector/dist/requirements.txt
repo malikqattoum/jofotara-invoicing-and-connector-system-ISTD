@@ -1,0 +1,35 @@
+# Core dependencies for JoFotara POS Connector
+requests>=2.31.0
+qrcode>=7.4.2
+lxml>=4.9.3
+pywin32>=306
+python-dotenv>=1.0.0
+watchdog>=3.0.0
+
+# Database drivers
+pyodbc>=4.0.39
+pymysql>=1.1.0
+psycopg2-binary>=2.9.7
+#cx-Oracle>=8.3.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+openpyxl>=3.1.0
+xlrd>=2.0.1
+
+# Windows-specific
+wmi>=1.5.1
+psutil>=5.9.0
+
+# Async support
+aiofiles>=23.0.0
+
+# Additional utilities
+python-dateutil>=2.8.2
+pytz>=2023.3
+cryptography>=41.0.0
+
+# PDF processing
+PyPDF2>=3.0.0
+pdfplumber>=0.9.0

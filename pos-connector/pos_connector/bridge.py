@@ -1,8 +1,13 @@
 import os
 import requests
-from dotenv import load_dotenv
 
-load_dotenv()
+# Try to load dotenv if available, but don't fail if it's not
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv not available, continue without it
+    pass
 
 class POSConnector:
     def __init__(self):
