@@ -1,12 +1,13 @@
 # 🌍 JoFotara E-Invoicing System with Universal POS Connector
 
-A comprehensive Laravel-based e-invoicing system that integrates with Jordan's JoFotara e-invoicing platform and provides a universal POS connector for any point-of-sale system.
+A comprehensive Laravel-based e-invoicing system that integrates with Jordan's JoFotara e-invoicing platform and provides universal connectors for both POS systems and major ERP platforms (SAP, Microsoft Dynamics, QuickBooks, Oracle, etc.).
 
 ## 🎯 System Overview
 
-The **JoFotara E-Invoicing System** is a complete business solution that enables seamless integration between any POS system and Jordan's mandatory e-invoicing platform. The system provides:
+The **JoFotara E-Invoicing System** is a complete business solution that enables seamless integration between any business system (POS, ERP, Accounting) and Jordan's mandatory e-invoicing platform. The system provides:
 
 - **Universal POS Integration** - Works with ANY POS system through our connector
+- **ERP System Integration** - Direct connectors to major ERP platforms including SAP, Microsoft Dynamics, QuickBooks, Oracle, and more
 - **JoFotara Compliance** - Full integration with Jordan's e-invoicing platform
 - **Mobile App Support** - Flutter mobile application for on-the-go management
 - **Admin Dashboard** - Complete system monitoring and management
@@ -16,10 +17,11 @@ The **JoFotara E-Invoicing System** is a complete business solution that enables
 
 ### Core Components
 
-1. **Laravel Backend** - Main application server with API endpoints
+1. **Laravel Backend** - Main application server with API endpoints and ERP connectors
 2. **Universal POS Connector** - Standalone application that connects to any POS system
-3. **Flutter Mobile App** - Mobile application for vendors and customers
-4. **JoFotara Integration** - Direct integration with Jordan's e-invoicing system
+3. **ERP Connectors** - Dedicated connectors for major ERP platforms (SAP, Dynamics, QuickBooks, Oracle)
+4. **Flutter Mobile App** - Mobile application for vendors and customers
+5. **JoFotara Integration** - Direct integration with Jordan's e-invoicing system
 
 ### Data Flow
 
@@ -28,6 +30,11 @@ POS System → Universal Connector → Laravel API → JoFotara Platform
     ↓              ↓                ↓           ↓
   Detects      Standardizes      Processes   Submits
 Transactions     Format          & Validates  Invoices
+
+ERP System → ERP Connector → Laravel API → JoFotara Platform
+    ↓            ↓              ↓           ↓
+  Extracts    Transforms     Processes   Submits
+Financial    Data Format    & Validates  Invoices
 ```
 
 ## 🚀 Key Features
@@ -38,6 +45,13 @@ Transactions     Format          & Validates  Invoices
 - 📊 **Auto Invoicing** - Automatic invoice creation from POS transactions
 - 🔒 **Secure API** - API key-based authentication
 - 📦 **Easy Distribution** - Generate custom installer packages for customers
+
+### ERP System Integration
+- 🏢 **Major ERP Support** - Direct integration with SAP, Microsoft Dynamics, QuickBooks, Oracle, and more
+- 🔄 **Real-time Sync** - Automatic financial data extraction and invoice generation
+- 📊 **Financial Integration** - Leverages existing ERP financial data and customer information
+- 🔒 **Secure API** - OAuth and API key-based authentication for each ERP platform
+- 📋 **Data Mapping** - Flexible data mapping to accommodate different ERP structures
 
 ### JoFotara Integration
 - 🇯🇴 **Jordan Compliance** - Full compliance with Jordan Tax Authority requirements
@@ -161,6 +175,7 @@ Query: ?api_key=[customer_api_key]
 
 ## 📱 Supported Business Types
 
+### POS Systems
 | Business Type | POS Systems | Features |
 |---------------|-------------|----------|
 | **Restaurant** | Any restaurant POS | Tables, tips, employees, menu items |
@@ -169,6 +184,16 @@ Query: ?api_key=[customer_api_key]
 | **Automotive** | Service shop POS | Vehicles, services, parts |
 | **Beauty** | Salon/spa POS | Clients, services, appointments |
 | **Professional** | Service business | Clients, billable hours, projects |
+
+### ERP Systems
+| ERP Platform | Integration Method | Features |
+|--------------|-------------------|----------|
+| **SAP** | Direct API connector | Financial data, customer master, material master |
+| **Microsoft Dynamics** | API connector | Sales orders, customers, products, financials |
+| **QuickBooks** | API connector | Invoices, customers, accounts, items |
+| **Oracle** | API connector | Financials, customers, orders, projects |
+| **Xero** | API connector | Invoices, contacts, accounts, tracking |
+| **NetSuite** | API connector | Transactions, customers, items, custom records |
 
 ## 🖨️ Printer Support
 
@@ -273,15 +298,17 @@ APP_LOG_LEVEL=debug
 ### For Businesses
 - **Compliance** - Meets Jordan's mandatory e-invoicing requirements
 - **Automation** - Eliminates manual data entry and invoice creation
-- **Integration** - Works with existing POS systems without replacement
-- **Efficiency** - Reduces processing time and errors
-- **Insights** - Provides valuable business analytics
+- **Integration** - Works with existing POS systems and ERP platforms without replacement
+- **Efficiency** - Reduces processing time and errors across all business systems
+- **Insights** - Provides valuable business analytics from integrated data
+- **Scalability** - Supports businesses of all sizes from small retail to large enterprises
 
 ### For Customers
 - **Convenience** - Mobile access to invoices and business data
-- **Flexibility** - Support for multiple printer types
+- **Flexibility** - Support for multiple printer types and business systems
 - **Localization** - Native Arabic language support
 - **Reliability** - Robust system with automatic recovery
+- **Enterprise Integration** - Seamless connection to existing enterprise systems
 
 ## 🤝 Contributing
 
@@ -316,6 +343,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ### Version 1.0.0
 - Initial release
 - Universal POS Connector with auto-invoicing
+- ERP System Integration (SAP, Microsoft Dynamics, QuickBooks, Oracle)
 - JoFotara SDK integration
 - Flutter mobile app with printer support
 - Admin dashboard for system management
@@ -325,10 +353,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🎉 Ready for Production
 
-The JoFotara E-Invoicing System is now fully operational and ready for production deployment. The system provides unprecedented flexibility and automation for any business using any POS system while maintaining full compliance with Jordan's e-invoicing requirements.
+The JoFotara E-Invoicing System is now fully operational and ready for production deployment. The system provides unprecedented flexibility and automation for any business using any POS system or ERP platform while maintaining full compliance with Jordan's e-invoicing requirements.
 
 **Key Features Ready:**
 - ✅ Universal POS Connector
+- ✅ ERP System Integration (SAP, Microsoft Dynamics, QuickBooks, Oracle)
 - ✅ JoFotara Integration
 - ✅ Mobile Application
 - ✅ Admin Dashboard
