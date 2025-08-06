@@ -1,61 +1,340 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🌍 JoFotara E-Invoicing System with Universal POS Connector
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A comprehensive Laravel-based e-invoicing system that integrates with Jordan's JoFotara e-invoicing platform and provides a universal POS connector for any point-of-sale system.
 
-## About Laravel
+## 🎯 System Overview
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+The **JoFotara E-Invoicing System** is a complete business solution that enables seamless integration between any POS system and Jordan's mandatory e-invoicing platform. The system provides:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Universal POS Integration** - Works with ANY POS system through our connector
+- **JoFotara Compliance** - Full integration with Jordan's e-invoicing platform
+- **Mobile App Support** - Flutter mobile application for on-the-go management
+- **Admin Dashboard** - Complete system monitoring and management
+- **Real-time Processing** - Automatic transaction detection and invoice generation
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 🏗️ System Architecture
 
-## Learning Laravel
+### Core Components
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+1. **Laravel Backend** - Main application server with API endpoints
+2. **Universal POS Connector** - Standalone application that connects to any POS system
+3. **Flutter Mobile App** - Mobile application for vendors and customers
+4. **JoFotara Integration** - Direct integration with Jordan's e-invoicing system
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Data Flow
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```
+POS System → Universal Connector → Laravel API → JoFotara Platform
+    ↓              ↓                ↓           ↓
+  Detects      Standardizes      Processes   Submits
+Transactions     Format          & Validates  Invoices
+```
 
-## Laravel Sponsors
+## 🚀 Key Features
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Universal POS Connector
+- 🔌 **Universal Compatibility** - Works with ANY POS system (Restaurant, Retail, Medical, Automotive, Beauty, Professional)
+- 🚀 **Real-time Sync** - Automatic transaction detection and processing
+- 📊 **Auto Invoicing** - Automatic invoice creation from POS transactions
+- 🔒 **Secure API** - API key-based authentication
+- 📦 **Easy Distribution** - Generate custom installer packages for customers
 
-### Premium Partners
+### JoFotara Integration
+- 🇯🇴 **Jordan Compliance** - Full compliance with Jordan Tax Authority requirements
+- 📄 **UBL 2.1 Standard** - Generates valid XML according to international standards
+- 🔐 **Secure Authentication** - OAuth2-based authentication with JoFotara
+- 📊 **Multiple Invoice Types** - Support for sales, income, credit invoices
+- 💰 **Automatic Calculations** - Built-in tax and total calculations
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Mobile Application
+- 📱 **Cross-platform** - Works on Android and iOS
+- 🌐 **Bilingual** - Full Arabic (RTL) and English (LTR) support
+- 🖨️ **Printer Support** - Bluetooth, Network, USB, and PDF printing
+- 📊 **Dashboard** - Real-time statistics and invoice tracking
+- 🔐 **Secure Login** - JWT-based authentication
 
-## Contributing
+### Admin Dashboard
+- 📈 **Real-time Monitoring** - Live connector status and transaction tracking
+- 👥 **Customer Management** - Complete POS customer lifecycle management
+- 📊 **Analytics** - Comprehensive business intelligence and reporting
+- 🔧 **System Configuration** - Flexible system-wide settings
+- 📋 **Transaction Management** - Full transaction history and processing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🛠️ Installation & Setup
 
-## Code of Conduct
+### Prerequisites
+- PHP 8.2 or higher
+- MySQL 8.0 or higher
+- Node.js 18 or higher
+- Composer
+- NPM
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Backend Setup
 
-## Security Vulnerabilities
+1. **Clone the repository**
+   ```bash
+   git clone https://your-repo-url.git
+   cd jo-invoicing
+   ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+2. **Install dependencies**
+   ```bash
+   composer install
+   npm install
+   ```
 
-## License
+3. **Environment configuration**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+4. **Database setup**
+   ```bash
+   php artisan migrate
+   php artisan db:seed --class=InvoiceSeeder
+   ```
+
+5. **Configure JoFotara integration**
+   ```bash
+   # Set JoFotara credentials in .env
+   JOFOTARA_CLIENT_ID=your_client_id
+   JOFOTARA_SECRET_KEY=your_secret_key
+   JOFOTARA_INCOME_SOURCE_SEQUENCE=your_sequence
+   JOFOTARA_ENVIRONMENT_URL=https://api.jofotara.jo
+   ```
+
+6. **Run the application**
+   ```bash
+   php artisan serve
+   ```
+
+### Mobile App Setup
+
+1. **Navigate to Flutter app**
+   ```bash
+   cd flutter_app
+   ```
+
+2. **Install dependencies**
+   ```bash
+   flutter pub get
+   ```
+
+3. **Configure API endpoint**
+   Edit `lib/utils/constants.dart`:
+   ```dart
+   static const String baseUrl = 'https://your-api-domain.com/api';
+   ```
+
+4. **Run the app**
+   ```bash
+   flutter run
+   ```
+
+## 🔌 API Endpoints
+
+### Base URL: `/api`
+
+| Endpoint | Method | Purpose | Authentication |
+|----------|--------|---------|----------------|
+| `/invoices` | GET | List invoices | Bearer Token |
+| `/invoices` | POST | Create invoice | Bearer Token |
+| `/invoices/{id}` | GET | Get invoice details | Bearer Token |
+| `/invoices/{id}` | PUT | Update invoice | Bearer Token |
+| `/invoices/{id}/submit` | POST | Submit to JoFotara | Bearer Token |
+| `/invoices/{id}/print` | POST | Print invoice | Bearer Token |
+| `/auth/login` | POST | Vendor login | None |
+| `/auth/logout` | POST | Vendor logout | Bearer Token |
+| `/dashboard/stats` | GET | Dashboard statistics | Bearer Token |
+| `/pos-connector/transactions` | POST | Submit POS transactions | API Key |
+| `/pos-connector/heartbeat` | POST | Connector status | API Key |
+
+### Authentication
+```
+Header: Authorization: Bearer [token]
+OR
+Header: X-API-Key: [customer_api_key]
+OR
+Query: ?api_key=[customer_api_key]
+```
+
+## 📱 Supported Business Types
+
+| Business Type | POS Systems | Features |
+|---------------|-------------|----------|
+| **Restaurant** | Any restaurant POS | Tables, tips, employees, menu items |
+| **Retail** | Any retail POS | Inventory, customers, products |
+| **Medical** | Practice management | Patients, appointments, services |
+| **Automotive** | Service shop POS | Vehicles, services, parts |
+| **Beauty** | Salon/spa POS | Clients, services, appointments |
+| **Professional** | Service business | Clients, billable hours, projects |
+
+## 🖨️ Printer Support
+
+### Supported Connection Types
+- **Bluetooth** - ESC/POS thermal printers
+- **Network** - WiFi/Ethernet printers
+- **USB** - Direct USB connection (Android)
+- **PDF** - System print dialog
+
+### Supported Brands
+- Epson (TM series, L series)
+- Star Micronics
+- Citizen
+- Brother
+- Canon
+- HP
+- Zebra
+- Generic ESC/POS printers
+
+## 🌐 Language Support
+
+### Full Localization
+- **العربية** - Complete RTL support with Arabic fonts
+- **English** - LTR layout with international formatting
+- **Currency** - JOD (Jordanian Dinar) formatting
+- **Dates** - Localized date and time formatting
+
+## 🔒 Security Features
+
+### Authentication & Authorization
+- JWT-based authentication for mobile app
+- API key authentication for POS connector
+- Role-based access control
+- Secure token management with automatic refresh
+
+### Data Protection
+- SSL/TLS encryption for all API communications
+- Secure storage of sensitive data
+- Input validation and sanitization
+- SQL injection prevention
+
+## 📊 Monitoring & Analytics
+
+### Real-time Dashboard
+- Active connector monitoring
+- Transaction processing statistics
+- Error tracking and alerting
+- Performance metrics
+
+### Business Intelligence
+- Revenue tracking and reporting
+- Customer behavior analysis
+- Transaction volume trends
+- System usage analytics
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**POS Connector Not Connecting**
+- Check API key validity
+- Verify network connectivity
+- Review debug logs in `storage/logs/pos-connector.log`
+
+**JoFotara Integration Issues**
+- Verify credentials in `.env` file
+- Check internet connectivity
+- Review JoFotara API response logs
+
+**Mobile App Issues**
+- Check API endpoint configuration
+- Verify device permissions
+- Clear app cache and data
+
+### Debug Mode
+Enable debug mode for detailed logging:
+```bash
+# In .env file
+APP_DEBUG=true
+APP_LOG_LEVEL=debug
+```
+
+## 🚀 Deployment
+
+### Production Deployment
+1. Set up production database
+2. Configure environment variables
+3. Run migrations and seeders
+4. Set up queue processing
+5. Configure SSL certificates
+6. Set up monitoring and logging
+
+### POS Connector Distribution
+1. Create customer in admin dashboard
+2. Generate custom installer package
+3. Provide package to customer
+4. Customer installs connector on their system
+5. Connector automatically detects and integrates with their POS
+
+## 📈 Business Benefits
+
+### For Businesses
+- **Compliance** - Meets Jordan's mandatory e-invoicing requirements
+- **Automation** - Eliminates manual data entry and invoice creation
+- **Integration** - Works with existing POS systems without replacement
+- **Efficiency** - Reduces processing time and errors
+- **Insights** - Provides valuable business analytics
+
+### For Customers
+- **Convenience** - Mobile access to invoices and business data
+- **Flexibility** - Support for multiple printer types
+- **Localization** - Native Arabic language support
+- **Reliability** - Robust system with automatic recovery
+
+## 🤝 Contributing
+
+We welcome contributions to improve the system. Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
+
+## 📞 Support
+
+### For System Administrators
+- **Documentation**: Comprehensive guides in `/docs` directory
+- **API Testing**: Built-in test endpoints
+- **Logs**: Detailed logging in `storage/logs/`
+- **Community**: GitHub issues and discussions
+
+### For End Users
+- **Mobile App Help**: In-app help section
+- **Printer Support**: Dedicated printer troubleshooting guide
+- **Video Tutorials**: Coming soon
+- **Email Support**: Available for enterprise customers
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🔄 Changelog
+
+### Version 1.0.0
+- Initial release
+- Universal POS Connector with auto-invoicing
+- JoFotara SDK integration
+- Flutter mobile app with printer support
+- Admin dashboard for system management
+- Multi-language support (Arabic/English)
+
+---
+
+## 🎉 Ready for Production
+
+The JoFotara E-Invoicing System is now fully operational and ready for production deployment. The system provides unprecedented flexibility and automation for any business using any POS system while maintaining full compliance with Jordan's e-invoicing requirements.
+
+**Key Features Ready:**
+- ✅ Universal POS Connector
+- ✅ JoFotara Integration
+- ✅ Mobile Application
+- ✅ Admin Dashboard
+- ✅ Multi-language Support
+- ✅ Printer Integration
+- ✅ Real-time Processing
+- ✅ Security & Compliance
+
+**Start transforming your business today!**
