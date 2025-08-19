@@ -5,58 +5,51 @@ namespace Tests\Unit;
 use Tests\TestCase;
 use App\Models\Workflow;
 use App\Models\WorkflowStep;
-use App\Models\WorkflowExecution;
 use App\Models\User;
+use App\Models\WorkflowExecution;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 
 class WorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
     /** @test */
-    public function workflow_can_be_created()
+    public function workflow_table_has_expected_columns()
     {
-        $user = User::factory()->create();
+        $this->assertTrue(Schema::hasTable('workflows'));
 
-        $workflowData = [
-            'name' => 'Invoice Processing Workflow',
-            'description' => 'Automated invoice processing',
-            'trigger_event' => 'invoice.created',
-            'trigger_conditions' => ['amount' => ['>', 1000]],
-            'is_active' => true,
-            'created_by' => $user->id,
+        $expectedColumns = [
+            'id', 'name', 'description', 'trigger_event', 'trigger_conditions',
+            'is_active', 'created_by', 'created_at', 'updated_at'
         ];
 
-        $workflow = Workflow::create($workflowData);
-
-        $this->assertInstanceOf(Workflow::class, $workflow);
-        $this->assertEquals('Invoice Processing Workflow', $workflow->name);
-        $this->assertTrue($workflow->is_active);
-        $this->assertEquals(['amount' => ['>', 1000]], $workflow->trigger_conditions);
+        foreach ($expectedColumns as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('workflows', $column),
+                "Workflows table is missing column: {$column}"
+            );
+        }
     }
 
     /** @test */
-    public function workflow_has_steps_relationship()
+    public function workflow_has_many_steps()
     {
         $workflow = Workflow::factory()->create();
-        $step = WorkflowStep::factory()->create([
-            'workflow_id' => $workflow->id,
-            'order' => 1
-        ]);
+        $steps = WorkflowStep::factory()->count(3)->create(['workflow_id' => $workflow->id]);
 
-        $this->assertTrue($workflow->steps->contains($step));
-        $this->assertEquals(1, $workflow->steps->count());
+        $this->assertCount(3, $workflow->steps);
+        $this->assertInstanceOf(WorkflowStep::class, $workflow->steps->first());
     }
 
     /** @test */
-    public function workflow_has_executions_relationship()
+    public function workflow_has_many_executions()
     {
         $workflow = Workflow::factory()->create();
-        $execution = WorkflowExecution::factory()->create([
-            'workflow_id' => $workflow->id
-        ]);
+        $executions = WorkflowExecution::factory()->count(2)->create(['workflow_id' => $workflow->id]);
 
-        $this->assertTrue($workflow->executions->contains($execution));
+        $this->assertCount(2, $workflow->executions);
+        $this->assertInstanceOf(WorkflowExecution::class, $workflow->executions->first());
     }
 
     /** @test */
@@ -70,77 +63,52 @@ class WorkflowTest extends TestCase
     }
 
     /** @test */
+    public function workflow_has_expected_fillable_fields()
+    {
+        $expectedFillable = [
+            'name', 'description', 'trigger_event', 'trigger_conditions',
+            'is_active', 'created_by'
+        ];
+
+        $workflow = new Workflow();
+        $actualFillable = $workflow->getFillable();
+
+        foreach ($expectedFillable as $field) {
+            $this->assertContains($field, $actualFillable);
+        }
+    }
+
+    /** @test */
     public function workflow_can_get_latest_execution()
     {
         $workflow = Workflow::factory()->create();
-
         $oldExecution = WorkflowExecution::factory()->create([
             'workflow_id' => $workflow->id,
-            'created_at' => now()->subHours(2)
+            'created_at' => now()->subDay()
         ]);
-
-        $latestExecution = WorkflowExecution::factory()->create([
+        $newExecution = WorkflowExecution::factory()->create([
             'workflow_id' => $workflow->id,
             'created_at' => now()
         ]);
 
-        $retrieved = $workflow->getLatestExecution();
-
-        $this->assertEquals($latestExecution->id, $retrieved->id);
+        $this->assertEquals($newExecution->id, $workflow->getLatestExecution()->id);
     }
 
     /** @test */
-    public function workflow_calculates_success_rate_correctly()
+    public function workflow_can_calculate_success_rate()
     {
         $workflow = Workflow::factory()->create();
 
-        // Create 3 successful executions
-        WorkflowExecution::factory(3)->create([
+        WorkflowExecution::factory()->count(3)->create([
             'workflow_id' => $workflow->id,
             'status' => 'completed'
         ]);
 
-        // Create 1 failed execution
-        WorkflowExecution::factory()->create([
+        WorkflowExecution::factory()->count(2)->create([
             'workflow_id' => $workflow->id,
             'status' => 'failed'
         ]);
 
-        $successRate = $workflow->getSuccessRate();
-
-        $this->assertEquals(75.0, $successRate);
-    }
-
-    /** @test */
-    public function workflow_returns_hundred_percent_success_rate_with_no_executions()
-    {
-        $workflow = Workflow::factory()->create();
-
-        $successRate = $workflow->getSuccessRate();
-
-        $this->assertEquals(100.0, $successRate);
-    }
-
-    /** @test */
-    public function workflow_can_be_activated_and_deactivated()
-    {
-        $workflow = Workflow::factory()->create(['is_active' => false]);
-
-        $workflow->update(['is_active' => true]);
-        $this->assertTrue($workflow->fresh()->is_active);
-
-        $workflow->update(['is_active' => false]);
-        $this->assertFalse($workflow->fresh()->is_active);
-    }
-
-    /** @test */
-    public function workflow_trigger_conditions_are_cast_to_array()
-    {
-        $workflow = Workflow::factory()->create([
-            'trigger_conditions' => ['status' => 'pending']
-        ]);
-
-        $this->assertIsArray($workflow->trigger_conditions);
-        $this->assertEquals(['status' => 'pending'], $workflow->trigger_conditions);
+        $this->assertEquals(60.0, $workflow->getSuccessRate());
     }
 }

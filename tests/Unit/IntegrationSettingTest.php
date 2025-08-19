@@ -4,87 +4,85 @@ namespace Tests\Unit;
 
 use Tests\TestCase;
 use App\Models\IntegrationSetting;
-use App\Models\Organization;
+use App\Models\User;
+use App\Models\Workflow;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 
 class IntegrationSettingTest extends TestCase
 {
     use RefreshDatabase;
 
     /** @test */
-    public function integration_setting_can_be_created()
+    public function integration_setting_table_has_expected_columns()
     {
-        $organization = Organization::factory()->create();
+        $this->assertTrue(Schema::hasTable('integration_settings'));
 
-        $settingData = [
-            'organization_id' => $organization->id,
-            'client_id' => 'test_client_id',
-            'secret_key' => 'test_secret_key',
-            'income_source_sequence' => 1,
-            'environment_url' => 'https://test.example.com',
-            'private_key_path' => '/path/to/private.key',
-            'public_cert_path' => '/path/to/public.cert',
+        $expectedColumns = [
+            'id', 'user_id', 'type', 'is_active', 'credentials', 'configuration', 'last_sync', 'next_sync', 'sync_frequency', 'day_of_week', 'created_at', 'updated_at'
         ];
 
-        $setting = IntegrationSetting::create($settingData);
-
-        $this->assertInstanceOf(IntegrationSetting::class, $setting);
-        $this->assertEquals('test_client_id', $setting->client_id);
-        $this->assertEquals($organization->id, $setting->organization_id);
-    }
-
-    /** @test */
-    public function integration_setting_belongs_to_organization()
-    {
-        $organization = Organization::factory()->create();
-        $setting = IntegrationSetting::factory()->create([
-            'organization_id' => $organization->id
-        ]);
-
-        $this->assertInstanceOf(Organization::class, $setting->organization);
-        $this->assertEquals($organization->id, $setting->organization->id);
-    }
-
-    /** @test */
-    public function integration_setting_has_required_fields()
-    {
-        $requiredFields = [
-            'organization_id',
-            'client_id',
-            'secret_key',
-            'income_source_sequence',
-            'environment_url',
-            'private_key_path',
-            'public_cert_path'
-        ];
-
-        $fillableFields = (new IntegrationSetting())->getFillable();
-
-        foreach ($requiredFields as $field) {
-            $this->assertContains($field, $fillableFields);
+        foreach ($expectedColumns as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('integration_settings', $column),
+                "IntegrationSetting table is missing column: {$column}"
+            );
         }
     }
 
     /** @test */
-    public function integration_setting_can_be_updated()
+    public function integration_setting_belongs_to_user()
     {
-        $setting = IntegrationSetting::factory()->create([
-            'client_id' => 'old_client_id'
-        ]);
+        $user = User::factory()->create();
+        $setting = IntegrationSetting::factory()->create(['user_id' => $user->id]);
 
-        $setting->update(['client_id' => 'new_client_id']);
-
-        $this->assertEquals('new_client_id', $setting->fresh()->client_id);
+        $this->assertInstanceOf(User::class, $setting->user);
+        $this->assertEquals($user->id, $setting->user->id);
     }
 
     /** @test */
-    public function integration_setting_can_be_deleted()
+    public function integration_setting_has_expected_fillable_fields()
     {
-        $setting = IntegrationSetting::factory()->create();
-        $settingId = $setting->id;
+        $expectedFillable = [
+            'type', 'is_active', 'credentials', 'configuration', 'last_sync', 'next_sync', 'sync_frequency', 'day_of_week'
+        ];
 
-        $setting->delete();
+        $setting = new IntegrationSetting();
+        $actualFillable = $setting->getFillable();
 
-        $this->assertNull(IntegrationSetting::find($settingId));
+        foreach ($expectedFillable as $field) {
+            $this->assertContains($field, $actualFillable);
+        }
+    }
+
+    /** @test */
+    public function integration_setting_can_get_frequency_description()
+    {
+        $dailySetting = IntegrationSetting::factory()->create(['sync_frequency' => 'daily']);
+        $this->assertEquals('Daily', $dailySetting->frequencyDescription);
+
+        $weeklySetting = IntegrationSetting::factory()->create(['sync_frequency' => 'weekly', 'day_of_week' => 2]);
+        $this->assertEquals('Weekly (Tuesday)', $weeklySetting->frequencyDescription);
+    }
+
+    /** @test */
+    public function integration_setting_can_get_day_name()
+    {
+        $setting = new IntegrationSetting();
+
+        $this->assertEquals('Monday', $setting->getDayName(1));
+        $this->assertEquals('Tuesday', $setting->getDayName(2));
+        $this->assertEquals('Sunday', $setting->getDayName(7));
+    }
+
+    /** @test */
+    public function integration_setting_can_scope_by_type()
+    {
+        IntegrationSetting::factory()->create(['type' => 'pos']);
+        IntegrationSetting::factory()->create(['type' => 'bank']);
+
+        $posSettings = IntegrationSetting::where('type', 'pos')->get();
+        $this->assertCount(1, $posSettings);
+        $this->assertEquals('pos', $posSettings->first()->type);
     }
 }

@@ -2,8 +2,8 @@
 
 namespace Database\Factories;
 
-use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Organization;
 
 class OrganizationFactory extends Factory
 {
@@ -12,13 +12,15 @@ class OrganizationFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->company(),
-            'email' => $this->faker->companyEmail(),
-            'phone' => $this->faker->phoneNumber(),
-            'address' => $this->faker->address(),
-            'tax_number' => $this->faker->numerify('TAX-#########'),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'name' => fake()->company(),
+            'email' => fake()->unique()->safeEmail(),
+            'phone' => fake()->phoneNumber(),
+            'address' => fake()->address(),
+            'tax_number' => fake()->numerify('TN######'),
+            'logo_path' => fake()->optional()->filePath(),
+            'status' => fake()->randomElement(['active', 'inactive', 'suspended']),
+            'created_by' => fake()->numberBetween(1, 10),
+            'updated_by' => fake()->numberBetween(1, 10),
         ];
     }
 }

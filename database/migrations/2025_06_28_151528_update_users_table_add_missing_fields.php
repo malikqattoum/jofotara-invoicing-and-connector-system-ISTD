@@ -17,7 +17,6 @@ return new class extends Migration
             $table->text('address')->nullable()->after('email');
             $table->string('phone')->nullable()->after('address');
             $table->json('settings')->nullable()->after('phone');
-            $table->string('role')->default('user')->after('settings');
             $table->boolean('is_admin')->default(false)->after('is_active');
             $table->unsignedBigInteger('organization_id')->nullable()->after('is_admin');
 

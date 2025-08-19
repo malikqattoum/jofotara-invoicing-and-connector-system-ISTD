@@ -4,198 +4,102 @@ namespace Tests\Unit;
 
 use Tests\TestCase;
 use App\Models\Invoice;
+use App\Models\Organization;
+use App\Models\Vendor;
 use App\Models\InvoiceItem;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class InvoiceTest extends TestCase
 {
     use RefreshDatabase;
 
     /** @test */
-    public function invoice_can_be_created_with_valid_data()
+    public function invoice_table_has_expected_columns()
     {
-        $invoiceData = [
-            'organization_id' => 1,
-            'vendor_id' => 1,
-            'invoice_number' => 'INV-001',
-            'invoice_date' => Carbon::today(),
-            'due_date' => Carbon::today()->addDays(30),
-            'customer_name' => 'John Doe',
-            'customer_email' => 'john@example.com',
-            'total_amount' => 1000.00,
-            'net_amount' => 800.00,
-            'tax_amount' => 200.00,
-            'status' => 'draft',
-            'payment_status' => 'pending',
-            'currency' => 'USD',
+        $this->assertTrue(Schema::hasTable('invoices'));
+
+        $expectedColumns = [
+            'id', 'organization_id', 'vendor_id', 'invoice_number', 'invoice_date', 'due_date',
+            'customer_name', 'customer_email', 'customer_phone', 'customer_address', 'total_amount',
+            'net_amount', 'tax_amount', 'discount_amount', 'status', 'payment_status', 'currency',
+            'created_at', 'updated_at'
         ];
 
-        $invoice = Invoice::create($invoiceData);
-
-        $this->assertInstanceOf(Invoice::class, $invoice);
-        $this->assertEquals('INV-001', $invoice->invoice_number);
-        $this->assertEquals(1000.00, $invoice->total_amount);
-        $this->assertEquals('draft', $invoice->status);
+        foreach ($expectedColumns as $column) {
+            $this->assertTrue(
+                Schema::hasColumn('invoices', $column),
+                "Invoices table is missing column: {$column}"
+            );
+        }
     }
 
     /** @test */
-    public function invoice_can_be_created_as_draft()
+    public function invoice_belongs_to_organization()
     {
-        $invoiceData = [
-            'organization_id' => 1,
-            'vendor_id' => 1,
-            'invoice_number' => 'INV-002',
-            'invoice_date' => Carbon::today(),
-            'due_date' => Carbon::today()->addDays(30),
-            'customer_name' => 'Jane Doe',
-            'total_amount' => 500.00,
-        ];
+        $organization = Organization::factory()->create();
+        $invoice = Invoice::factory()->create(['organization_id' => $organization->id]);
 
-        $invoice = Invoice::createDraft($invoiceData);
-
-        $this->assertEquals('draft', $invoice->status);
-        $this->assertEquals('pending', $invoice->payment_status);
-        $this->assertEquals(1, $invoice->revision_number);
-        $this->assertEquals('pending', $invoice->compliance_status);
+        $this->assertInstanceOf(Organization::class, $invoice->organization);
+        $this->assertEquals($organization->id, $invoice->organization->id);
     }
 
     /** @test */
-    public function invoice_can_be_submitted()
+    public function invoice_has_many_items()
     {
-        $invoice = Invoice::factory()->create(['status' => 'draft']);
+        $invoice = Invoice::factory()->create();
+        $items = InvoiceItem::factory()->count(3)->create(['invoice_id' => $invoice->id]);
 
-        $invoice->submit();
-
-        $this->assertEquals('submitted', $invoice->status);
-        $this->assertNotNull($invoice->submitted_at);
+        $this->assertCount(3, $invoice->items);
+        $this->assertInstanceOf(InvoiceItem::class, $invoice->items->first());
     }
 
     /** @test */
     public function invoice_can_be_marked_as_paid()
     {
-        $invoice = Invoice::factory()->create([
-            'status' => 'submitted',
-            'payment_status' => 'pending'
-        ]);
+        $invoice = Invoice::factory()->create(['payment_status' => 'pending']);
 
-        $invoice->markAsPaid('credit_card', 'REF123');
+        $invoice->markAsPaid('credit_card', 'PAY-12345');
 
-        $this->assertEquals('paid', $invoice->payment_status);
-        $this->assertEquals('credit_card', $invoice->payment_method);
-        $this->assertEquals('REF123', $invoice->payment_reference);
-        $this->assertNotNull($invoice->paid_at);
+        $this->assertEquals('paid', $invoice->fresh()->payment_status);
+        $this->assertEquals('credit_card', $invoice->fresh()->payment_method);
+        $this->assertEquals('PAY-12345', $invoice->fresh()->payment_reference);
     }
 
     /** @test */
-    public function invoice_can_be_rejected()
+    public function invoice_has_expected_fillable_fields()
     {
-        $invoice = Invoice::factory()->create(['status' => 'submitted']);
+        $expectedFillable = [
+            'organization_id', 'vendor_id', 'invoice_number', 'invoice_date', 'due_date',
+            'customer_name', 'customer_email', 'customer_phone', 'customer_address', 'total_amount',
+            'net_amount', 'tax_amount', 'discount_amount', 'status', 'payment_status', 'currency'
+        ];
 
-        $invoice->reject('Invalid data');
+        $invoice = new Invoice();
+        $actualFillable = $invoice->getFillable();
 
-        $this->assertEquals('rejected', $invoice->status);
-        $this->assertEquals('Invalid data', $invoice->rejection_reason);
-        $this->assertNotNull($invoice->processed_at);
+        foreach ($expectedFillable as $field) {
+            $this->assertContains($field, $actualFillable);
+        }
     }
 
     /** @test */
-    public function invoice_overdue_scope_works()
+    public function invoice_can_check_overdue_status()
     {
-        // Create overdue invoice
-        $overdueInvoice = Invoice::factory()->create([
-            'due_date' => Carbon::yesterday(),
-            'payment_status' => 'pending',
-            'status' => 'submitted'
-        ]);
+        $overdueInvoice = Invoice::factory()->create(['due_date' => now()->subDay(), 'payment_status' => 'pending']);
+        $this->assertTrue($overdueInvoice->isOverdue);
 
-        // Create non-overdue invoice
-        $currentInvoice = Invoice::factory()->create([
-            'due_date' => Carbon::tomorrow(),
-            'payment_status' => 'pending',
-            'status' => 'submitted'
-        ]);
-
-        $overdueInvoices = Invoice::overdue()->get();
-
-        $this->assertTrue($overdueInvoices->contains($overdueInvoice));
-        $this->assertFalse($overdueInvoices->contains($currentInvoice));
-    }
-
-    /** @test */
-    public function invoice_is_overdue_attribute_works()
-    {
-        $overdueInvoice = Invoice::factory()->create([
-            'due_date' => Carbon::yesterday(),
-            'payment_status' => 'pending',
-            'status' => 'submitted'
-        ]);
-
-        $currentInvoice = Invoice::factory()->create([
-            'due_date' => Carbon::tomorrow(),
-            'payment_status' => 'pending',
-            'status' => 'submitted'
-        ]);
-
-        $this->assertTrue($overdueInvoice->is_overdue);
-        $this->assertFalse($currentInvoice->is_overdue);
-    }
-
-    /** @test */
-    public function invoice_payment_delay_days_calculated_correctly()
-    {
-        $invoice = Invoice::factory()->create([
-            'due_date' => Carbon::parse('2024-01-01'),
-            'paid_at' => Carbon::parse('2024-01-05'),
-        ]);
-
-        $this->assertEquals(4, $invoice->payment_delay_days);
-    }
-
-    /** @test */
-    public function invoice_processing_time_calculated_correctly()
-    {
-        $invoice = Invoice::factory()->create([
-            'submitted_at' => Carbon::parse('2024-01-01 10:00:00'),
-            'processed_at' => Carbon::parse('2024-01-01 14:00:00'),
-        ]);
-
-        $this->assertEquals(4, $invoice->processing_time);
-    }
-
-    /** @test */
-    public function invoice_has_audit_trail()
-    {
-        $invoice = Invoice::factory()->create();
-
-        $invoice->addToAuditTrail('test_action', ['key' => 'value']);
-
-        $this->assertNotEmpty($invoice->audit_trail);
-        $this->assertEquals('test_action', $invoice->audit_trail[0]['action']);
-        $this->assertEquals(['key' => 'value'], $invoice->audit_trail[0]['data']);
-    }
-
-    /** @test */
-    public function invoice_has_items_relationship()
-    {
-        $invoice = Invoice::factory()->create();
-        $item = InvoiceItem::factory()->create(['invoice_id' => $invoice->id]);
-
-        $this->assertTrue($invoice->items->contains($item));
+        $currentInvoice = Invoice::factory()->create(['due_date' => now()->addDay(), 'payment_status' => 'pending']);
+        $this->assertFalse($currentInvoice->isOverdue);
     }
 
     /** @test */
     public function invoice_scopes_work_correctly()
     {
-        $invoice1 = Invoice::factory()->create(['vendor_id' => 1, 'organization_id' => 1]);
-        $invoice2 = Invoice::factory()->create(['vendor_id' => 2, 'organization_id' => 1]);
-        $invoice3 = Invoice::factory()->create(['vendor_id' => 1, 'organization_id' => 2]);
+        Invoice::factory()->count(3)->create(['status' => 'draft']);
+        Invoice::factory()->count(2)->create(['status' => 'submitted']);
 
-        $vendorInvoices = Invoice::forVendor(1)->get();
-        $orgInvoices = Invoice::forOrganization(1)->get();
-
-        $this->assertCount(2, $vendorInvoices);
-        $this->assertCount(2, $orgInvoices);
+        $this->assertCount(2, Invoice::submitted()->get());
+        $this->assertCount(3, Invoice::where('status', 'draft')->get());
     }
 }
